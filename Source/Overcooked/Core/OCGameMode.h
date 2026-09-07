@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "OCRecipeTypes.h"
 #include "OCGameMode.generated.h"
 
 class AOCGameState;
@@ -26,6 +27,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Overcooked|Score")
 	void AddScore(int32 ScoreDelta); //게임모드.점수
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Overcooked|Recipe")
+	bool SubmitDish(const FOCDishContents& Dish, EOCRecipeType& MatchedRecipe); //레시피.제출
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Overcooked|Debug")
+	bool DebugCompleteOrderAtIndex(int32 OrderIndex); //주문.디버그
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Overcooked|Match")
 	void FinishRound(); //게임모드.라운드
@@ -52,6 +59,15 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Network", meta = (ClampMin = "2", ClampMax = "4"))
 	int32 MinimumPlayersToStart = 2;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Order", meta = (ClampMin = "0.1"))
+	float MinimumOrderInterval = 5.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Order", meta = (ClampMin = "0.1"))
+	float MaximumOrderInterval = 7.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Order", meta = (ClampMin = "1"))
+	int32 MaximumActiveOrders = 6;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Camera")
 	FTransform DefaultSharedCameraTransform = FTransform(
 		FRotator(-60.0f, -90.0f, 0.0f),
@@ -69,6 +85,9 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Overcooked|Match", meta = (DisplayName = "On Results Ready"))
 	void BP_OnResultsReady(); //게임모드.결과
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Overcooked|Recipe", meta = (DisplayName = "On Dish Submitted"))
+	void BP_OnDishSubmitted(bool bAccepted, EOCRecipeType MatchedRecipe); //레시피.제출
+
 private:
 	int32 ResolvePlayerSlotIndex(const AController* Player) const;
 	FName MakePlayerStartTag(int32 PlayerSlotIndex) const;
@@ -83,12 +102,16 @@ private:
 	void ShowResults();
 	void UpdateCountdown();
 	void UpdateRoundTimer();
+	void ScheduleNextOrder();
+	void GenerateOrder();
 	int32 CalculateEarnedStars(int32 FinalScore) const;
 	void ClearRoundTimers();
 
 	FTimerHandle CountdownTimerHandle;
 	FTimerHandle RoundTimerHandle;
 	FTimerHandle ResultsTimerHandle;
+	FTimerHandle OrderTimerHandle;
+	int32 NextOrderId = 0;
 
 	UPROPERTY(Transient)
 	TObjectPtr<AOCSharedCameraActor> SharedCameraActor;

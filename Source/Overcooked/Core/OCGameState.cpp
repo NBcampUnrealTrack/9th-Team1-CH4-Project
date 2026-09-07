@@ -16,6 +16,7 @@ void AOCGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(AOCGameState, CurrentScore);
 	DOREPLIFETIME(AOCGameState, MatchResult);
 	DOREPLIFETIME(AOCGameState, ParticipatingPlayerCount);
+	DOREPLIFETIME(AOCGameState, ActiveOrders);
 }
 
 void AOCGameState::SetMatchPhase(const EOCMatchPhase NewPhase)
@@ -99,6 +100,48 @@ void AOCGameState::SetParticipatingPlayerCount(const int32 NewPlayerCount)
 	ForceNetUpdate();
 }
 
+void AOCGameState::AddOrder(const FOCActiveOrder& NewOrder)
+{
+	if (!HasAuthority() || NewOrder.Recipe == EOCRecipeType::None)
+	{
+		return;
+	}
+
+	ActiveOrders.Add(NewOrder);
+	OnOrdersChanged.Broadcast();
+	ForceNetUpdate();
+}
+
+bool AOCGameState::RemoveOrder(const int32 OrderId)
+{
+	if (!HasAuthority())
+	{
+		return false;
+	}
+
+	const int32 RemovedCount = ActiveOrders.RemoveAll(
+		[OrderId](const FOCActiveOrder& Order) { return Order.OrderId == OrderId; });
+	if (RemovedCount > 0)
+	{
+		OnOrdersChanged.Broadcast();
+		ForceNetUpdate();
+	}
+
+	return RemovedCount > 0;
+}
+
+void AOCGameState::ClearOrders()
+{
+	if (!HasAuthority() || ActiveOrders.IsEmpty())
+	{
+		return;
+	}
+
+	ActiveOrders.Reset();
+	OnOrdersChanged.Broadcast();
+	ForceNetUpdate();
+}
+
 void AOCGameState::OnRep_MatchPhase(const EOCMatchPhase PreviousPhase)
 {
 	OnMatchPhaseChanged.Broadcast(MatchPhase, PreviousPhase);
@@ -122,4 +165,9 @@ void AOCGameState::OnRep_MatchResult()
 void AOCGameState::OnRep_ParticipatingPlayerCount(const int32 PreviousPlayerCount)
 {
 	OnParticipatingPlayerCountChanged.Broadcast(ParticipatingPlayerCount, PreviousPlayerCount);
+}
+
+void AOCGameState::OnRep_ActiveOrders()
+{
+	OnOrdersChanged.Broadcast();
 }

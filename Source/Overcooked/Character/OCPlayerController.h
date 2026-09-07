@@ -23,6 +23,9 @@ protected:
 	float GamepadDeadZone = 0.2f;
 
 private:
+	UFUNCTION(Server, Reliable)
+	void ServerDebugCompleteOrder(int32 OrderIndex);
+
 	bool TryUseSharedCamera();
 	void RefreshSharedCamera();
 	FVector2D ReadMovementInput() const;

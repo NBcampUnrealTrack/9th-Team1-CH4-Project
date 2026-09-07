@@ -3,9 +3,11 @@
 #include "OCGameInstance.h"
 #include "OCGameState.h"
 #include "OCPlayerState.h"
+#include "OCRecipeLibrary.h"
 #include "../Camera/OCSharedCameraActor.h"
 #include "../Character/OCCharacter.h"
 #include "../Character/OCPlayerController.h"
+#include "../UI/OCDebugHUD.h"
 #include "Engine/World.h"
 #include "Engine/LocalPlayer.h"
 #include "EngineUtils.h"
@@ -21,6 +23,7 @@ AOCGameMode::AOCGameMode()
 	PlayerStateClass = AOCPlayerState::StaticClass();
 	DefaultPawnClass = AOCCharacter::StaticClass();
 	PlayerControllerClass = AOCPlayerController::StaticClass();
+	HUDClass = AOCDebugHUD::StaticClass();
 }
 
 void AOCGameMode::StartPlay()
@@ -96,7 +99,7 @@ AActor* AOCGameMode::ChoosePlayerStart_Implementation(AController* Player)
 	return Super::ChoosePlayerStart_Implementation(Player);
 }
 
-void AOCGameMode::StartRound()
+void AOCGameMode::StartRound()				//카운트다운 시작 및 3초 설정
 {
 	if (!HasAuthority())
 	{
@@ -138,6 +141,75 @@ void AOCGameMode::AddScore(const int32 ScoreDelta)
 	}
 
 	State->SetCurrentScore(State->GetCurrentScore() + ScoreDelta);
+}
+
+bool AOCGameMode::SubmitDish(const FOCDishContents& Dish, EOCRecipeType& MatchedRecipe)
+{
+	MatchedRecipe = EOCRecipeType::None;
+	AOCGameState* State = GetOCGameState();
+	if (!HasAuthority() || !IsValid(State) || State->GetMatchPhase() != EOCMatchPhase::Playing)
+	{
+		return false;
+	}
+
+	MatchedRecipe = UOCRecipeLibrary::FindMatchingRecipe(Dish);
+	int32 MatchingOrderId = INDEX_NONE;
+	int32 MatchingOrderIndex = INDEX_NONE;
+	const TArray<FOCActiveOrder> Orders = State->GetActiveOrders();
+	for (int32 OrderIndex = 0; OrderIndex < Orders.Num(); ++OrderIndex)
+	{
+		if (Orders[OrderIndex].Recipe == MatchedRecipe)
+		{
+			MatchingOrderId = Orders[OrderIndex].OrderId;
+			MatchingOrderIndex = OrderIndex;
+			break;
+		}
+	}
+
+	const bool bAccepted = MatchingOrderId != INDEX_NONE;
+	if (bAccepted)
+	{
+		State->RemoveOrder(MatchingOrderId);
+		const int32 BaseScore = UOCRecipeLibrary::GetRecipeDefinition(MatchedRecipe).BaseScore;
+		AddScore(FMath::Max(0, BaseScore - MatchingOrderIndex * 2));
+		if (State->GetActiveOrders().IsEmpty())
+		{
+			GenerateOrder();
+		}
+	}
+
+	BP_OnDishSubmitted(bAccepted, MatchedRecipe);
+	return bAccepted;
+}
+
+bool AOCGameMode::DebugCompleteOrderAtIndex(const int32 OrderIndex)
+{
+	AOCGameState* State = GetOCGameState();
+	if (!HasAuthority() || !IsValid(State) || State->GetMatchPhase() != EOCMatchPhase::Playing)
+	{
+		return false;
+	}
+
+	const TArray<FOCActiveOrder> Orders = State->GetActiveOrders();
+	if (!Orders.IsValidIndex(OrderIndex))
+	{
+		return false;
+	}
+
+	const FOCActiveOrder& SelectedOrder = Orders[OrderIndex];
+	if (!State->RemoveOrder(SelectedOrder.OrderId))
+	{
+		return false;
+	}
+
+	const int32 BaseScore = UOCRecipeLibrary::GetRecipeDefinition(SelectedOrder.Recipe).BaseScore;
+	AddScore(FMath::Max(0, BaseScore - OrderIndex * 2));
+	BP_OnDishSubmitted(true, SelectedOrder.Recipe);
+	if (State->GetActiveOrders().IsEmpty())
+	{
+		GenerateOrder();
+	}
+	return true;
 }
 
 void AOCGameMode::FinishRound()
@@ -305,7 +377,10 @@ void AOCGameMode::BeginPlaying()
 
 	State->SetRemainingTime(RoundDuration);
 	State->SetMatchPhase(EOCMatchPhase::Playing);
+	State->ClearOrders();
+	NextOrderId = 0;
 	BP_OnRoundStarted();
+	GenerateOrder();
 
 	GetWorldTimerManager().SetTimer(
 		RoundTimerHandle,
@@ -367,6 +442,38 @@ void AOCGameMode::UpdateRoundTimer()
 	}
 }
 
+void AOCGameMode::ScheduleNextOrder()
+{
+	const float MinimumInterval = FMath::Min(MinimumOrderInterval, MaximumOrderInterval);
+	const float MaximumInterval = FMath::Max(MinimumOrderInterval, MaximumOrderInterval);
+	GetWorldTimerManager().SetTimer(
+		OrderTimerHandle,
+		this,
+		&AOCGameMode::GenerateOrder,
+		FMath::FRandRange(MinimumInterval, MaximumInterval),
+		false);
+}
+
+void AOCGameMode::GenerateOrder()
+{
+	AOCGameState* State = GetOCGameState();
+	if (!HasAuthority() || !IsValid(State) || State->GetMatchPhase() != EOCMatchPhase::Playing)
+	{
+		return;
+	}
+
+	const TArray<FOCRecipeDefinition> Recipes = UOCRecipeLibrary::GetAllRecipeDefinitions();
+	if (!Recipes.IsEmpty() && State->GetActiveOrders().Num() < MaximumActiveOrders)
+	{
+		FOCActiveOrder NewOrder;
+		NewOrder.OrderId = NextOrderId++;
+		NewOrder.Recipe = Recipes[FMath::RandRange(0, Recipes.Num() - 1)].Recipe;
+		State->AddOrder(NewOrder);
+	}
+
+	ScheduleNextOrder();
+}
+
 int32 AOCGameMode::CalculateEarnedStars(const int32 FinalScore) const
 {
 	int32 EarnedStars = 0;
@@ -386,4 +493,5 @@ void AOCGameMode::ClearRoundTimers()
 	GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
 	GetWorldTimerManager().ClearTimer(RoundTimerHandle);
 	GetWorldTimerManager().ClearTimer(ResultsTimerHandle);
+	GetWorldTimerManager().ClearTimer(OrderTimerHandle);
 }

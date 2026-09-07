@@ -1,6 +1,7 @@
 #include "OCPlayerController.h"
 
 #include "../Camera/OCSharedCameraActor.h"
+#include "../Core/OCGameMode.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
@@ -45,6 +46,45 @@ void AOCPlayerController::PlayerTick(const float DeltaTime)
 	}
 
 	ApplyMovementInput(ReadMovementInput());
+
+	int32 DebugOrderIndex = INDEX_NONE;
+	if (WasInputKeyJustPressed(EKeys::One))
+	{
+		DebugOrderIndex = 0;
+	}
+	else if (WasInputKeyJustPressed(EKeys::Two))
+	{
+		DebugOrderIndex = 1;
+	}
+	else if (WasInputKeyJustPressed(EKeys::Three))
+	{
+		DebugOrderIndex = 2;
+	}
+	else if (WasInputKeyJustPressed(EKeys::Four))
+	{
+		DebugOrderIndex = 3;
+	}
+	else if (WasInputKeyJustPressed(EKeys::Five))
+	{
+		DebugOrderIndex = 4;
+	}
+	else if (WasInputKeyJustPressed(EKeys::Six))
+	{
+		DebugOrderIndex = 5;
+	}
+
+	if (DebugOrderIndex != INDEX_NONE)
+	{
+		ServerDebugCompleteOrder(DebugOrderIndex);
+	}
+}
+
+void AOCPlayerController::ServerDebugCompleteOrder_Implementation(const int32 OrderIndex)
+{
+	if (AOCGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AOCGameMode>() : nullptr)
+	{
+		GameMode->DebugCompleteOrderAtIndex(OrderIndex);
+	}
 }
 
 void AOCPlayerController::OnPossess(APawn* InPawn)
