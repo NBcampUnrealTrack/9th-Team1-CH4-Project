@@ -17,6 +17,8 @@ void AOCGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(AOCGameState, MatchResult);
 	DOREPLIFETIME(AOCGameState, ParticipatingPlayerCount);
 	DOREPLIFETIME(AOCGameState, ActiveOrders);
+	DOREPLIFETIME(AOCGameState, ComboCount);
+	DOREPLIFETIME(AOCGameState, TipMultiplier);
 }
 
 void AOCGameState::SetMatchPhase(const EOCMatchPhase NewPhase)
@@ -142,6 +144,19 @@ void AOCGameState::ClearOrders()
 	ForceNetUpdate();
 }
 
+void AOCGameState::SetCombo(const int32 NewComboCount, const int32 NewTipMultiplier)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	ComboCount = FMath::Max(0, NewComboCount);
+	TipMultiplier = FMath::Clamp(NewTipMultiplier, 1, 4);
+	OnComboChanged.Broadcast(ComboCount, TipMultiplier);
+	ForceNetUpdate();
+}
+
 void AOCGameState::OnRep_MatchPhase(const EOCMatchPhase PreviousPhase)
 {
 	OnMatchPhaseChanged.Broadcast(MatchPhase, PreviousPhase);
@@ -170,4 +185,9 @@ void AOCGameState::OnRep_ParticipatingPlayerCount(const int32 PreviousPlayerCoun
 void AOCGameState::OnRep_ActiveOrders()
 {
 	OnOrdersChanged.Broadcast();
+}
+
+void AOCGameState::OnRep_Combo()
+{
+	OnComboChanged.Broadcast(ComboCount, TipMultiplier);
 }

@@ -14,7 +14,12 @@ public:
 
 private:
 	void DrawCenteredText(const FString& Text, float ScreenY, float Scale, const FLinearColor& Color) const;
-	void DrawBottomLeftText(const FString& Text, float Scale, const FLinearColor& Color) const;
+	void DrawBottomLeftText(const FString& Text, float BottomOffset, float Scale, const FLinearColor& Color) const;
 	void DrawBottomRightText(const FString& Text, float Scale, const FLinearColor& Color) const;
 	void DrawOrders(const class AOCGameState& State) const;
+
+	int32 PreviousScore = 0;
+	int32 DisplayedScoreDelta = 0;
+	float ScoreDeltaDisplayEndTime = 0.0f;
+	bool bHasInitializedScore = false;
 };

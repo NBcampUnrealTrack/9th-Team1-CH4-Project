@@ -96,4 +96,10 @@ struct OVERCOOKED_API FOCActiveOrder
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Order")
 	EOCRecipeType Recipe = EOCRecipeType::None;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Order")
+	float CreatedAtServerTime = 0.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Order")
+	float TimeLimit = 30.0f;
 };

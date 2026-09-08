@@ -68,6 +68,15 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Order", meta = (ClampMin = "1"))
 	int32 MaximumActiveOrders = 6;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Score", meta = (ClampMin = "1"))
+	int32 MaximumOrderTip = 8;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Score", meta = (ClampMin = "0"))
+	int32 MinimumOrderTip = 3;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Score", meta = (ClampMin = "1.0"))
+	float OrderTipDecayDuration = 30.0f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Camera")
 	FTransform DefaultSharedCameraTransform = FTransform(
 		FRotator(-60.0f, -90.0f, 0.0f),
@@ -104,6 +113,9 @@ private:
 	void UpdateRoundTimer();
 	void ScheduleNextOrder();
 	void GenerateOrder();
+	void AwardOrderScore(AOCGameState& State, const FOCActiveOrder& Order, bool bCompletedInOrder);
+	int32 CalculateOrderTip(const AOCGameState& State, const FOCActiveOrder& Order) const;
+	int32 CalculateTipMultiplier(int32 ComboCount) const;
 	int32 CalculateEarnedStars(int32 FinalScore) const;
 	void ClearRoundTimers();
 

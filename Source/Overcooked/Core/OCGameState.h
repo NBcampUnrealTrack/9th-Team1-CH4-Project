@@ -12,6 +12,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOCScoreChangedSignature, int32, Ne
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOCMatchResultReadySignature, const FOCMatchResult&, MatchResult);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOCParticipatingPlayerCountChangedSignature, int32, NewPlayerCount, int32, PreviousPlayerCount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOCOrdersChangedSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOCComboChangedSignature, int32, NewComboCount, int32, NewTipMultiplier);
 
 UCLASS(BlueprintType)
 class OVERCOOKED_API AOCGameState : public AGameStateBase
@@ -41,6 +42,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Overcooked|Order")
 	TArray<FOCActiveOrder> GetActiveOrders() const { return ActiveOrders; } //주문.목록
 
+	const TArray<FOCActiveOrder>& GetActiveOrdersRef() const { return ActiveOrders; } //주문.목록
+
+	UFUNCTION(BlueprintPure, Category = "Overcooked|Score")
+	int32 GetComboCount() const { return ComboCount; } //점수.콤보
+
+	UFUNCTION(BlueprintPure, Category = "Overcooked|Score")
+	int32 GetTipMultiplier() const { return TipMultiplier; } //점수.팁
+
 	UPROPERTY(BlueprintAssignable, Category = "Overcooked|Events")
 	FOCMatchPhaseChangedSignature OnMatchPhaseChanged;
 
@@ -59,6 +68,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Overcooked|Events")
 	FOCOrdersChangedSignature OnOrdersChanged;
 
+	UPROPERTY(BlueprintAssignable, Category = "Overcooked|Events")
+	FOCComboChangedSignature OnComboChanged;
+
 	void SetMatchPhase(EOCMatchPhase NewPhase);
 	void SetRemainingTime(float NewRemainingTime);
 	void SetCurrentScore(int32 NewScore);
@@ -67,6 +79,7 @@ public:
 	void AddOrder(const FOCActiveOrder& NewOrder);
 	bool RemoveOrder(int32 OrderId);
 	void ClearOrders();
+	void SetCombo(int32 NewComboCount, int32 NewTipMultiplier);
 
 protected:
 	UPROPERTY(ReplicatedUsing = OnRep_MatchPhase, VisibleInstanceOnly, BlueprintReadOnly, Category = "Overcooked|Match")
@@ -87,6 +100,12 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_ActiveOrders, VisibleInstanceOnly, BlueprintReadOnly, Category = "Overcooked|Order")
 	TArray<FOCActiveOrder> ActiveOrders;
 
+	UPROPERTY(ReplicatedUsing = OnRep_Combo, VisibleInstanceOnly, BlueprintReadOnly, Category = "Overcooked|Score")
+	int32 ComboCount = 0;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Combo, VisibleInstanceOnly, BlueprintReadOnly, Category = "Overcooked|Score")
+	int32 TipMultiplier = 1;
+
 private:
 	UFUNCTION()
 	void OnRep_MatchPhase(EOCMatchPhase PreviousPhase);
@@ -105,4 +124,7 @@ private:
 
 	UFUNCTION()
 	void OnRep_ActiveOrders();
+
+	UFUNCTION()
+	void OnRep_Combo();
 };

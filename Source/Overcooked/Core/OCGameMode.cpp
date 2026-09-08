@@ -155,7 +155,7 @@ bool AOCGameMode::SubmitDish(const FOCDishContents& Dish, EOCRecipeType& Matched
 	MatchedRecipe = UOCRecipeLibrary::FindMatchingRecipe(Dish);
 	int32 MatchingOrderId = INDEX_NONE;
 	int32 MatchingOrderIndex = INDEX_NONE;
-	const TArray<FOCActiveOrder> Orders = State->GetActiveOrders();
+	const TArray<FOCActiveOrder>& Orders = State->GetActiveOrdersRef();
 	for (int32 OrderIndex = 0; OrderIndex < Orders.Num(); ++OrderIndex)
 	{
 		if (Orders[OrderIndex].Recipe == MatchedRecipe)
@@ -169,10 +169,10 @@ bool AOCGameMode::SubmitDish(const FOCDishContents& Dish, EOCRecipeType& Matched
 	const bool bAccepted = MatchingOrderId != INDEX_NONE;
 	if (bAccepted)
 	{
+		const FOCActiveOrder CompletedOrder = Orders[MatchingOrderIndex];
 		State->RemoveOrder(MatchingOrderId);
-		const int32 BaseScore = UOCRecipeLibrary::GetRecipeDefinition(MatchedRecipe).BaseScore;
-		AddScore(FMath::Max(0, BaseScore - MatchingOrderIndex * 2));
-		if (State->GetActiveOrders().IsEmpty())
+		AwardOrderScore(*State, CompletedOrder, MatchingOrderIndex == 0);
+		if (State->GetActiveOrdersRef().IsEmpty())
 		{
 			GenerateOrder();
 		}
@@ -190,22 +190,21 @@ bool AOCGameMode::DebugCompleteOrderAtIndex(const int32 OrderIndex)
 		return false;
 	}
 
-	const TArray<FOCActiveOrder> Orders = State->GetActiveOrders();
+	const TArray<FOCActiveOrder>& Orders = State->GetActiveOrdersRef();
 	if (!Orders.IsValidIndex(OrderIndex))
 	{
 		return false;
 	}
 
-	const FOCActiveOrder& SelectedOrder = Orders[OrderIndex];
+	const FOCActiveOrder SelectedOrder = Orders[OrderIndex];
 	if (!State->RemoveOrder(SelectedOrder.OrderId))
 	{
 		return false;
 	}
 
-	const int32 BaseScore = UOCRecipeLibrary::GetRecipeDefinition(SelectedOrder.Recipe).BaseScore;
-	AddScore(FMath::Max(0, BaseScore - OrderIndex * 2));
+	AwardOrderScore(*State, SelectedOrder, OrderIndex == 0);
 	BP_OnDishSubmitted(true, SelectedOrder.Recipe);
-	if (State->GetActiveOrders().IsEmpty())
+	if (State->GetActiveOrdersRef().IsEmpty())
 	{
 		GenerateOrder();
 	}
@@ -378,6 +377,7 @@ void AOCGameMode::BeginPlaying()
 	State->SetRemainingTime(RoundDuration);
 	State->SetMatchPhase(EOCMatchPhase::Playing);
 	State->ClearOrders();
+	State->SetCombo(0, 1);
 	NextOrderId = 0;
 	BP_OnRoundStarted();
 	GenerateOrder();
@@ -463,15 +463,65 @@ void AOCGameMode::GenerateOrder()
 	}
 
 	const TArray<FOCRecipeDefinition> Recipes = UOCRecipeLibrary::GetAllRecipeDefinitions();
-	if (!Recipes.IsEmpty() && State->GetActiveOrders().Num() < MaximumActiveOrders)
+	if (!Recipes.IsEmpty() && State->GetActiveOrdersRef().Num() < MaximumActiveOrders)
 	{
 		FOCActiveOrder NewOrder;
 		NewOrder.OrderId = NextOrderId++;
 		NewOrder.Recipe = Recipes[FMath::RandRange(0, Recipes.Num() - 1)].Recipe;
+		NewOrder.CreatedAtServerTime = State->GetServerWorldTimeSeconds();
+		NewOrder.TimeLimit = OrderTipDecayDuration;
 		State->AddOrder(NewOrder);
 	}
 
 	ScheduleNextOrder();
+}
+
+void AOCGameMode::AwardOrderScore(
+	AOCGameState& State,
+	const FOCActiveOrder& Order,
+	const bool bCompletedInOrder)
+{
+	const int32 BaseScore = UOCRecipeLibrary::GetRecipeDefinition(Order.Recipe).BaseScore;
+	const int32 EarnedTip = CalculateOrderTip(State, Order) * State.GetTipMultiplier();
+	AddScore(BaseScore + EarnedTip);
+
+	if (bCompletedInOrder)
+	{
+		const int32 NewComboCount = State.GetComboCount() + 1;
+		State.SetCombo(NewComboCount, CalculateTipMultiplier(NewComboCount));
+	}
+	else
+	{
+		State.SetCombo(0, 1);
+	}
+}
+
+int32 AOCGameMode::CalculateOrderTip(const AOCGameState& State, const FOCActiveOrder& Order) const
+{
+	const float OrderAge = FMath::Max(0.0f, State.GetServerWorldTimeSeconds() - Order.CreatedAtServerTime);
+	const float TipDuration = FMath::Max(1.0f, Order.TimeLimit);
+	const float RemainingRatio = 1.0f - FMath::Clamp(OrderAge / TipDuration, 0.0f, 1.0f);
+	return FMath::RoundToInt(FMath::Lerp(
+		static_cast<float>(MinimumOrderTip),
+		static_cast<float>(MaximumOrderTip),
+		RemainingRatio));
+}
+
+int32 AOCGameMode::CalculateTipMultiplier(const int32 ComboCount) const
+{
+	if (ComboCount >= 4)
+	{
+		return 4;
+	}
+	if (ComboCount >= 3)
+	{
+		return 3;
+	}
+	if (ComboCount >= 2)
+	{
+		return 2;
+	}
+	return 1;
 }
 
 int32 AOCGameMode::CalculateEarnedStars(const int32 FinalScore) const

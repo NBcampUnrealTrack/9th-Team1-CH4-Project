@@ -36,6 +36,12 @@ void AOCPlayerController::BeginPlay()
 	}
 }
 
+void AOCPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorldTimerManager().ClearTimer(SharedCameraRetryTimerHandle);
+	Super::EndPlay(EndPlayReason);
+}
+
 void AOCPlayerController::PlayerTick(const float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
