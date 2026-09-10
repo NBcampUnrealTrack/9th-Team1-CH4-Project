@@ -4,23 +4,30 @@
 #include "TestInteractableObject.h"
 
 
-// Sets default values
 ATestInteractableObject::ATestInteractableObject()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
+
+	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(
+		TEXT("Mesh")
+	);
+
+	RootComponent = Mesh;
+
+	Mesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
+	Mesh->SetCollisionResponseToChannel(
+		ECC_Visibility,
+		ECR_Block
+	);
 }
 
-// Called when the game starts or when spawned
-void ATestInteractableObject::BeginPlay()
+
+void ATestInteractableObject::Interact_Implementation(AAPlayerCharacter* Player)
 {
-	Super::BeginPlay();
-	
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("TestInteractableObject 상호작용 성공")
+	);
 }
-
-// Called every frame
-void ATestInteractableObject::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
-

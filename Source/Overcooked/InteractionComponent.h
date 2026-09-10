@@ -17,7 +17,8 @@ public:
 	UInteractionComponent();
 
 	void TryInteract();	
-	
+	void TryPickup();
+
 private:
 	
 	UPROPERTY(EditAnywhere, Category = "Interaction")

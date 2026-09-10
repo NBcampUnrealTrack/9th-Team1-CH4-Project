@@ -1,26 +1,45 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Ingredient.h"
+#include "APlayerCharacter.h"
+#include "ItemHolderComponent.h"
 
-
-// Sets default values
 AIngredient::AIngredient()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 }
 
-// Called when the game starts or when spawned
-void AIngredient::BeginPlay()
+void AIngredient::Interact_Implementation(
+	AAPlayerCharacter* Player
+)
 {
-	Super::BeginPlay();
-	
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Ingredient 일반 상호작용")
+	);
 }
 
-// Called every frame
-void AIngredient::Tick(float DeltaTime)
+void AIngredient::Pickup_Implementation(
+	AAPlayerCharacter* Player
+)
 {
-	Super::Tick(DeltaTime);
-}
+	if (!Player)
+	{
+		return;
+	}
 
+	UItemHolderComponent* ItemHolder =
+		Player->FindComponentByClass<UItemHolderComponent>();
+
+	if (!ItemHolder)
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("Ingredient: ItemHolderComponent를 찾지 못함")
+		);
+
+		return;
+	}
+
+	ItemHolder->Hold(this);
+}

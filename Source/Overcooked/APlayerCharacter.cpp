@@ -6,12 +6,13 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "InteractionComponent.h"
-
+#include "ItemHolderComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 
 #include "InputAction.h"
-#include "InputMappingContext.h"
+
+
 
 
 AAPlayerCharacter::AAPlayerCharacter()
@@ -53,6 +54,11 @@ AAPlayerCharacter::AAPlayerCharacter()
     InteractionComponent =
     CreateDefaultSubobject<UInteractionComponent>(
         TEXT("InteractionComponent")
+    );
+    
+    ItemHolderComponent =
+    CreateDefaultSubobject<UItemHolderComponent>(
+        TEXT("ItemHolderComponent")
     );
     
     
@@ -103,14 +109,19 @@ void AAPlayerCharacter::SetupPlayerInputComponent(
         this,
       &AAPlayerCharacter::Move
 );
-        
-        
         EnhancedInputComponent->BindAction(
      InteractAction,
       ETriggerEvent::Started,
       this,
      &AAPlayerCharacter::Interact
 );
+        EnhancedInputComponent->BindAction(
+        PickupDropAction,
+        ETriggerEvent::Started,
+         this,
+         &AAPlayerCharacter::PickupOrDrop
+    );   
+        
     }
     
     
@@ -146,4 +157,38 @@ void AAPlayerCharacter::Interact()
        );
     
     InteractionComponent->TryInteract();
+}
+
+void AAPlayerCharacter::PickupOrDrop()
+{
+    if (!ItemHolderComponent)
+    {
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT("PickupOrDrop: ItemHolderComponent가 없음")
+        );
+
+        return;
+    }
+
+    if (ItemHolderComponent->GetHeldObject())
+    {
+        ItemHolderComponent->Release();
+        return;
+    }
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("PickupOrDrop: 현재 들고 있는 객체가 없음")
+    );
+    
+    if (ItemHolderComponent->GetHeldObject())
+    {
+        ItemHolderComponent->Release();
+        return;
+    }
+
+    InteractionComponent->TryPickup();
 }

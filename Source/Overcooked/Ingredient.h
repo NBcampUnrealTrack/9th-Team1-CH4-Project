@@ -4,22 +4,22 @@
 
 #include "CoreMinimal.h"
 #include "KitchenObject.h"
+#include "PickupableInterface.h"
 #include "Ingredient.generated.h"
 
+
+class AAPlayerCharacter;
+
 UCLASS()
-class OVERCOOKED_API AIngredient : public AKitchenObject
+class OVERCOOKED_API AIngredient : public AKitchenObject, public IPickupableInterface
 {
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this actor's properties
 	AIngredient();
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	virtual void Interact_Implementation(
+		AAPlayerCharacter* Player
+	) override;
+	void Pickup_Implementation(AAPlayerCharacter* Player);
 };

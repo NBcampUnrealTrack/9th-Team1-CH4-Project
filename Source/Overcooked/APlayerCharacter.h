@@ -13,6 +13,7 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 class UInteractionComponent;
+class UItemHolderComponent;
 
 UCLASS()
 class OVERCOOKED_API AAPlayerCharacter : public ACharacter
@@ -25,9 +26,7 @@ public:
 	virtual void BeginPlay() override;
 	
 protected:
-	virtual void SetupPlayerInputComponent(
-		class UInputComponent* PlayerInputComponent
-	) override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 private:
 
@@ -51,11 +50,18 @@ private:
 
 	void Move(const FInputActionValue& Value);
 	void Interact();
+	void PickupOrDrop();
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction",
-	meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction",meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UInteractionComponent> InteractionComponent;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputAction> InteractAction;
+	
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = "Item",meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UItemHolderComponent> ItemHolderComponent;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	TObjectPtr<UInputAction> PickupDropAction;
+	
 };
