@@ -75,6 +75,7 @@ bool UOCRecipeLibrary::DoesDishMatchRecipe(const FOCDishContents& Dish, const EO
 	const FOCRecipeDefinition Definition = GetRecipeDefinition(Recipe);
 	int32 RequiredIngredientCount = 0;
 
+	//재료 종류 판정
 	for (const FOCIngredientRequirement& Requirement : Definition.Requirements)
 	{
 		RequiredIngredientCount += Requirement.Quantity;
@@ -82,6 +83,7 @@ bool UOCRecipeLibrary::DoesDishMatchRecipe(const FOCDishContents& Dish, const EO
 
 		for (const FOCPreparedIngredient& Ingredient : Dish.Ingredients)
 		{
+			//손질 상태 판정
 			if (Ingredient.Ingredient == Requirement.Ingredient
 				&& Ingredient.State == Requirement.RequiredState)
 			{
@@ -95,10 +97,12 @@ bool UOCRecipeLibrary::DoesDishMatchRecipe(const FOCDishContents& Dish, const EO
 		}
 	}
 
+	//재료 개수 판정
 	return Definition.Recipe != EOCRecipeType::None
 		&& Dish.Ingredients.Num() == RequiredIngredientCount;
 }
 
+//레시피 검색
 EOCRecipeType UOCRecipeLibrary::FindMatchingRecipe(const FOCDishContents& Dish)
 {
 	for (const FOCRecipeDefinition& Definition : GetAllRecipeDefinitions())

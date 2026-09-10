@@ -152,10 +152,12 @@ bool AOCGameMode::SubmitDish(const FOCDishContents& Dish, EOCRecipeType& Matched
 		return false;
 	}
 
+	//레시피 판정
 	MatchedRecipe = UOCRecipeLibrary::FindMatchingRecipe(Dish);
 	int32 MatchingOrderId = INDEX_NONE;
 	int32 MatchingOrderIndex = INDEX_NONE;
 	const TArray<FOCActiveOrder>& Orders = State->GetActiveOrdersRef();
+	//주문 판정
 	for (int32 OrderIndex = 0; OrderIndex < Orders.Num(); ++OrderIndex)
 	{
 		if (Orders[OrderIndex].Recipe == MatchedRecipe)
@@ -169,6 +171,7 @@ bool AOCGameMode::SubmitDish(const FOCDishContents& Dish, EOCRecipeType& Matched
 	const bool bAccepted = MatchingOrderId != INDEX_NONE;
 	if (bAccepted)
 	{
+		//선입 주문 완료
 		const FOCActiveOrder CompletedOrder = Orders[MatchingOrderIndex];
 		State->RemoveOrder(MatchingOrderId);
 		AwardOrderScore(*State, CompletedOrder, MatchingOrderIndex == 0);
@@ -481,10 +484,12 @@ void AOCGameMode::AwardOrderScore(
 	const FOCActiveOrder& Order,
 	const bool bCompletedInOrder)
 {
+	//점수 계산
 	const int32 BaseScore = UOCRecipeLibrary::GetRecipeDefinition(Order.Recipe).BaseScore;
 	const int32 EarnedTip = CalculateOrderTip(State, Order) * State.GetTipMultiplier();
 	AddScore(BaseScore + EarnedTip);
 
+	//콤보 판정
 	if (bCompletedInOrder)
 	{
 		const int32 NewComboCount = State.GetComboCount() + 1;
