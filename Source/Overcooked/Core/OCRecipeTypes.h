@@ -9,7 +9,23 @@ enum class EOCRecipeType : uint8
 	None,
 	LettuceSalad,
 	TomatoSalad,
-	CucumberTomatoCabbageSalad
+	CucumberTomatoCabbageSalad,
+	ShrimpSushi,
+	OctopusSushi,
+	SalmonSushi,
+	TomatoBaconSalad,
+	SalmonRollSushi,
+	SeaUrchinRollSushi
+};
+
+UENUM(BlueprintType)
+enum class EOCRecipeStage : uint8
+{
+	Tutorial,
+	Stage1,
+	Stage2,
+	Stage3,
+	PostStage3
 };
 
 UENUM(BlueprintType)
@@ -18,7 +34,14 @@ enum class EOCIngredientType : uint8
 	Lettuce,
 	Tomato,
 	Cucumber,
-	Cabbage
+	Cabbage,
+	Shrimp,
+	Rice,
+	Octopus,
+	SalmonFillet,
+	Bacon,
+	Seaweed,
+	SeaUrchin
 };
 
 UENUM(BlueprintType)

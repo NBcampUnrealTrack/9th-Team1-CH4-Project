@@ -18,6 +18,9 @@ public:
 	static TArray<FOCRecipeDefinition> GetAllRecipeDefinitions(); //레시피.데이터
 
 	UFUNCTION(BlueprintPure, Category = "Overcooked|Recipe")
+	static TArray<FOCRecipeDefinition> GetRecipeDefinitionsForStage(EOCRecipeStage Stage); //레시피.스테이지
+
+	UFUNCTION(BlueprintPure, Category = "Overcooked|Recipe")
 	static bool DoesDishMatchRecipe(const FOCDishContents& Dish, EOCRecipeType Recipe); //레시피.판정
 
 	UFUNCTION(BlueprintPure, Category = "Overcooked|Recipe")

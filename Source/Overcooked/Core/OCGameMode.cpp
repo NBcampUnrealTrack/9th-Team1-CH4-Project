@@ -465,7 +465,7 @@ void AOCGameMode::GenerateOrder()
 		return;
 	}
 
-	const TArray<FOCRecipeDefinition> Recipes = UOCRecipeLibrary::GetAllRecipeDefinitions();
+	const TArray<FOCRecipeDefinition> Recipes = UOCRecipeLibrary::GetRecipeDefinitionsForStage(RecipeStage);
 	if (!Recipes.IsEmpty() && State->GetActiveOrdersRef().Num() < MaximumActiveOrders)
 	{
 		FOCActiveOrder NewOrder;

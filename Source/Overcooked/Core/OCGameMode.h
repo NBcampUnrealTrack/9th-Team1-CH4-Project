@@ -68,6 +68,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Order", meta = (ClampMin = "1"))
 	int32 MaximumActiveOrders = 6;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Recipe")
+	EOCRecipeStage RecipeStage = EOCRecipeStage::Tutorial;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Score", meta = (ClampMin = "1"))
 	int32 MaximumOrderTip = 8;
 
