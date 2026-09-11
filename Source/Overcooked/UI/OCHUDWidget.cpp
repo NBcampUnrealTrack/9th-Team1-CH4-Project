@@ -1,7 +1,8 @@
-#include "OvercookedHUDWidget.h"
+#include "OCHUDWidget.h"
+
 #include "Components/TextBlock.h"
 
-void UOvercookedHUDWidget::SetScore(int32 NewScore)
+void UOCHUDWidget::SetScore(int32 NewScore)
 {
 	if (ScoreText)
 	{
@@ -9,18 +10,18 @@ void UOvercookedHUDWidget::SetScore(int32 NewScore)
 	}
 }
 
-void UOvercookedHUDWidget::SetRemainingTime(float NewTime)
+void UOCHUDWidget::SetRemainingTime(float NewTime)
 {
 	if (TimerText)
 	{
 		const int32 TotalSeconds = FMath::Max(0, FMath::CeilToInt(NewTime));
+
 		const int32 Minutes = TotalSeconds / 60;
 		const int32 Seconds = TotalSeconds % 60;
 
-		TimerText->SetText(
-			FText::FromString(
-				FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds)
-			)
-		);
+		const FString TimeString =
+			FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds);
+
+		TimerText->SetText(FText::FromString(TimeString));
 	}
 }

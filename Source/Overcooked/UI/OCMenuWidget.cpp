@@ -1,7 +1,7 @@
-#include "OvercookedMenuWidget.h"
+#include "OCMenuWidget.h"
 #include "Components/Button.h"
 
-void UOvercookedMenuWidget::NativeConstruct()
+void UOCMenuWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
@@ -9,7 +9,7 @@ void UOvercookedMenuWidget::NativeConstruct()
 	{
 		StartButton->OnClicked.AddDynamic(
 			this,
-			&UOvercookedMenuWidget::OnStartButtonClicked
+			&UOCMenuWidget::OnStartButtonClicked
 		);
 	}
 
@@ -17,7 +17,7 @@ void UOvercookedMenuWidget::NativeConstruct()
 	{
 		SettingsButton->OnClicked.AddDynamic(
 			this,
-			&UOvercookedMenuWidget::OnSettingsButtonClicked
+			&UOCMenuWidget::OnSettingsButtonClicked
 		);
 	}
 
@@ -25,22 +25,22 @@ void UOvercookedMenuWidget::NativeConstruct()
 	{
 		ExitButton->OnClicked.AddDynamic(
 			this,
-			&UOvercookedMenuWidget::OnExitButtonClicked
+			&UOCMenuWidget::OnExitButtonClicked
 		);
 	}
 }
 
-void UOvercookedMenuWidget::OnStartButtonClicked()
+void UOCMenuWidget::OnStartButtonClicked()
 {
 	UE_LOG(LogTemp, Log, TEXT("Start Button Clicked"));
 }
 
-void UOvercookedMenuWidget::OnSettingsButtonClicked()
+void UOCMenuWidget::OnSettingsButtonClicked()
 {
 	UE_LOG(LogTemp, Log, TEXT("Settings Button Clicked"));
 }
 
-void UOvercookedMenuWidget::OnExitButtonClicked()
+void UOCMenuWidget::OnExitButtonClicked()
 {
 	UE_LOG(LogTemp, Log, TEXT("Exit Button Clicked"));
 }

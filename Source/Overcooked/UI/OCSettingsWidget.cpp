@@ -1,9 +1,9 @@
-#include "OvercookedSettingsWidget.h"
+#include "OCSettingsWidget.h"
 
 #include "Components/Slider.h"
 #include "Components/Button.h"
 
-void UOvercookedSettingsWidget::NativeConstruct()
+void UOCSettingsWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
@@ -11,7 +11,7 @@ void UOvercookedSettingsWidget::NativeConstruct()
 	{
 		MasterVolumeSlider->OnValueChanged.AddDynamic(
 			this,
-			&UOvercookedSettingsWidget::OnMasterVolumeChanged
+			&UOCSettingsWidget::OnMasterVolumeChanged
 		);
 	}
 
@@ -19,7 +19,7 @@ void UOvercookedSettingsWidget::NativeConstruct()
 	{
 		BGMVolumeSlider->OnValueChanged.AddDynamic(
 			this,
-			&UOvercookedSettingsWidget::OnBGMVolumeChanged
+			&UOCSettingsWidget::OnBGMVolumeChanged
 		);
 	}
 
@@ -27,7 +27,7 @@ void UOvercookedSettingsWidget::NativeConstruct()
 	{
 		SFXVolumeSlider->OnValueChanged.AddDynamic(
 			this,
-			&UOvercookedSettingsWidget::OnSFXVolumeChanged
+			&UOCSettingsWidget::OnSFXVolumeChanged
 		);
 	}
 
@@ -35,27 +35,27 @@ void UOvercookedSettingsWidget::NativeConstruct()
 	{
 		BackButton->OnClicked.AddDynamic(
 			this,
-			&UOvercookedSettingsWidget::OnBackButtonClicked
+			&UOCSettingsWidget::OnBackButtonClicked
 		);
 	}
 }
 
-void UOvercookedSettingsWidget::OnMasterVolumeChanged(float Value)
+void UOCSettingsWidget::OnMasterVolumeChanged(float Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("Master Volume: %f"), Value);
 }
 
-void UOvercookedSettingsWidget::OnBGMVolumeChanged(float Value)
+void UOCSettingsWidget::OnBGMVolumeChanged(float Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("BGM Volume: %f"), Value);
 }
 
-void UOvercookedSettingsWidget::OnSFXVolumeChanged(float Value)
+void UOCSettingsWidget::OnSFXVolumeChanged(float Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("SFX Volume: %f"), Value);
 }
 
-void UOvercookedSettingsWidget::OnBackButtonClicked()
+void UOCSettingsWidget::OnBackButtonClicked()
 {
 	UE_LOG(LogTemp, Log, TEXT("Back Button Clicked"));
 

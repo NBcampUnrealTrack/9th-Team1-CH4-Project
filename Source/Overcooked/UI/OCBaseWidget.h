@@ -2,10 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "OvercookedBaseWidget.generated.h"
+#include "OCBaseWidget.generated.h"
 
 UCLASS()
-class OVERCOOKED_API UOvercookedBaseWidget : public UUserWidget
+class OVERCOOKED_API UOCBaseWidget : public UUserWidget
 {
 	GENERATED_BODY()
 

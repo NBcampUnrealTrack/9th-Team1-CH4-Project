@@ -1,13 +1,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "OvercookedBaseWidget.h"
-#include "OvercookedMenuWidget.generated.h"
+#include "OCBaseWidget.h"
+#include "OCMenuWidget.generated.h"
 
 class UButton;
 
 UCLASS()
-class OVERCOOKED_API UOvercookedMenuWidget : public UOvercookedBaseWidget
+class OVERCOOKED_API UOCMenuWidget : public UOCBaseWidget
 {
 	GENERATED_BODY()
 
