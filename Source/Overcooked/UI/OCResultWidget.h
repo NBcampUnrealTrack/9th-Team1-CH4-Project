@@ -8,7 +8,7 @@ class UTextBlock;
 class UImage;
 class UButton;
 class UOverlay;
-class UTexture2D;
+class UWidgetAnimation;
 
 UCLASS()
 class OVERCOOKED_API UOCResultWidget : public UOCBaseWidget
@@ -16,6 +16,8 @@ class OVERCOOKED_API UOCResultWidget : public UOCBaseWidget
 	GENERATED_BODY()
 
 public:
+	UOCResultWidget(const FObjectInitializer& ObjectInitializer);
+
 	UFUNCTION(BlueprintCallable, Category = "Result")
 	void SetStageText(const FString& StageName);
 
@@ -46,6 +48,12 @@ public:
 
 protected:
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
+
+	virtual FReply NativeOnPreviewKeyDown(
+		const FGeometry& InGeometry,
+		const FKeyEvent& InKeyEvent
+	) override;
 
 	UFUNCTION()
 	void OnRetryClicked();
@@ -58,6 +66,32 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Result")
 	void BP_OnNextClicked();
+
+private:
+	void StartScoreCountUp();
+	void UpdateScoreCount();
+	void CheckStarUnlocks();
+	void SkipScoreCountUp();
+
+	FTimerHandle ScoreCountTimer;
+
+	float ScoreCountDuration = 3.0f;
+	float ScoreCountStartTime = 0.0f;
+
+	int32 DisplayedScore = 0;
+	int32 TargetScore = 0;
+	int32 TargetDeliveredValue = 0;
+	int32 TargetTipValue = 0;
+	
+	int32 OneStarThreshold = 0;
+	int32 TwoStarThreshold = 0;
+	int32 ThreeStarThreshold = 0;
+
+	bool bIsCountingScore = false;
+
+	bool bStar1Unlocked = false;
+	bool bStar2Unlocked = false;
+	bool bStar3Unlocked = false;
 
 protected:
 	UPROPERTY(meta = (BindWidget))
@@ -110,4 +144,13 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> NextButton;
+
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> Star1Pop;
+
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> Star2Pop;
+
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> Star3Pop;
 };
