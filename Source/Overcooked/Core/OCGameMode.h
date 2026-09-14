@@ -111,6 +111,7 @@ private:
 	FName MakePlayerStartTag(int32 PlayerSlotIndex) const;
 	bool HasEnoughPlayersToStart();
 	void TryAutoStartRound();
+	void ConfigureRulesForCurrentMap();
 	void RefreshParticipatingPlayerCount();
 	void RefreshPlayerSlots();
 	void EnsureSharedCamera();

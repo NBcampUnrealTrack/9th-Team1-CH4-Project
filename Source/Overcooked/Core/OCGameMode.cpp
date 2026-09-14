@@ -13,6 +13,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/PlayerStart.h"
 #include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogOCGameMode, Log, All);
@@ -42,6 +43,7 @@ void AOCGameMode::StartPlay()
 {
 	Super::StartPlay();
 
+	ConfigureRulesForCurrentMap();
 	EnsureSharedCamera();
 	ApplySharedCameraToAllPlayers();
 	RefreshParticipatingPlayerCount();
@@ -199,6 +201,18 @@ bool AOCGameMode::SubmitDish(const FOCDishContents& Dish, EOCRecipeType& Matched
 
 	BP_OnDishSubmitted(bAccepted, MatchedRecipe);
 	return bAccepted;
+}
+
+void AOCGameMode::ConfigureRulesForCurrentMap()
+{
+	const FString LevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+	if (LevelName.Equals(TEXT("tutorial"), ESearchCase::IgnoreCase))
+	{
+		bUseDebugOrderSequence = false;
+		RecipeStage = EOCRecipeStage::Tutorial;
+		MinimumOrderInterval = 5.0f;
+		MaximumOrderInterval = 7.0f;
+	}
 }
 
 bool AOCGameMode::CanSubmitDish(const FOCDishContents& Dish, EOCRecipeType& MatchedRecipe) const
