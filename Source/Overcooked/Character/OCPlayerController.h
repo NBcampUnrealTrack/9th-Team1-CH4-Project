@@ -4,6 +4,7 @@
 #include "GameFramework/PlayerController.h"
 #include "OCPlayerController.generated.h"
 
+class UOCHUDWidget;
 UCLASS(Blueprintable)
 class OVERCOOKED_API AOCPlayerController : public APlayerController
 {
@@ -20,6 +21,12 @@ protected:
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnRep_Pawn() override;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|UI")
+	TSubclassOf<UOCHUDWidget> HUDWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UOCHUDWidget> HUDWidget;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Input", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float GamepadDeadZone = 0.2f;
 
@@ -27,6 +34,11 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerDebugCompleteOrder(int32 OrderIndex);
 
+	UFUNCTION()
+	void HandleScoreChanged(int32 NewScore, int32 ScoreDelta);
+	UFUNCTION()
+	void HandleRemainingTimeChanged(float NewRemainingTime);
+	
 	bool TryUseSharedCamera();
 	void RefreshSharedCamera();
 	FVector2D ReadMovementInput() const;

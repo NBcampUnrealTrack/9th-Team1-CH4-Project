@@ -2,6 +2,8 @@
 
 #include "../Camera/OCSharedCameraActor.h"
 #include "../Core/OCGameMode.h"
+#include "../Core/OCGameState.h"
+#include "../UI/OCHUDWidget.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
@@ -24,7 +26,31 @@ void AOCPlayerController::BeginPlay()
 	{
 		return;
 	}
+	if (HUDWidgetClass)
+	{
+		HUDWidget = CreateWidget<UOCHUDWidget>(this, HUDWidgetClass);
 
+		if (HUDWidget)
+		{
+			HUDWidget->AddToViewport();
+		}
+	}
+	if (AOCGameState* GameState = GetWorld()->GetGameState<AOCGameState>())
+	{
+		GameState->OnScoreChanged.AddDynamic(
+			this,
+			&AOCPlayerController::HandleScoreChanged
+		);
+
+		HandleScoreChanged(GameState->GetCurrentScore(), 0);
+		
+		GameState->OnRemainingTimeChanged.AddDynamic(
+	this,
+	&AOCPlayerController::HandleRemainingTimeChanged
+);
+
+		HandleRemainingTimeChanged(GameState->GetRemainingTime());
+	}
 	if (!TryUseSharedCamera())
 	{
 		GetWorldTimerManager().SetTimer(
@@ -34,6 +60,7 @@ void AOCPlayerController::BeginPlay()
 			0.1f,
 			true);
 	}
+	
 }
 
 void AOCPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -168,4 +195,31 @@ void AOCPlayerController::ApplyMovementInput(const FVector2D& MovementInput)
 
 	ControlledPawn->AddMovementInput(ForwardDirection, MovementInput.Y);
 	ControlledPawn->AddMovementInput(RightDirection, MovementInput.X);
+}
+void AOCPlayerController::HandleScoreChanged(
+	int32 NewScore,
+	int32 ScoreDelta)
+{
+	if (HUDWidget)
+	{
+		HUDWidget->SetScore(NewScore);
+	}
+}
+void AOCPlayerController::HandleRemainingTimeChanged(float NewRemainingTime)
+{
+	if (!HUDWidget)
+	{
+		return;
+	}
+
+	const AOCGameState* GameState =
+		GetWorld()->GetGameState<AOCGameState>();
+
+	if (!GameState ||
+		GameState->GetMatchPhase() != EOCMatchPhase::Playing)
+	{
+		return;
+	}
+
+	HUDWidget->SetTimer(NewRemainingTime, 120.0f);
 }
