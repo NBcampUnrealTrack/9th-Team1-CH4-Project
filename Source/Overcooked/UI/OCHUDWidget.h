@@ -37,6 +37,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "HUD")
 	FOnTimeOver OnTimeOver;
 	
+	UFUNCTION(BlueprintCallable, Category = "HUD")
+	void SetTipMultiplier(float Multiplier);
+	
 protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> ScoreText;
@@ -53,6 +56,9 @@ protected:
 	UPROPERTY(Transient, meta = (BindWidgetAnim))
 	TObjectPtr<UWidgetAnimation> TimerWarningShake;
 
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TipMultiplierText;
+	
 	bool bIsTimerWarning = false;
 	bool bTimeOverTriggered = false;
 	

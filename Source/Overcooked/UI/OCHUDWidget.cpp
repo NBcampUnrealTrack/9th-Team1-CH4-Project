@@ -155,3 +155,16 @@ void UOCHUDWidget::ClearOrders()
 		OrderBox->ClearChildren();
 	}
 }
+
+void UOCHUDWidget::SetTipMultiplier(float Multiplier)
+{
+	if (TipMultiplierText)
+	{
+		const FString MultiplierString =
+			FString::Printf(TEXT("x%.1f"), Multiplier);
+
+		TipMultiplierText->SetText(
+			FText::FromString(MultiplierString)
+		);
+	}
+}
