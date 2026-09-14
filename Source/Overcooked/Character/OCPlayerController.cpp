@@ -11,6 +11,7 @@
 #include "GameFramework/Pawn.h"
 #include "InputCoreTypes.h"
 #include "TimerManager.h"
+#include "../UI/OCResultWidget.h"
 
 AOCPlayerController::AOCPlayerController()
 {
@@ -65,9 +66,18 @@ void AOCPlayerController::BeginPlay()
 	this,
 	&AOCPlayerController::HandleOrdersChanged
 );
-
+		GameState->OnMatchResultReady.AddDynamic(
+			this,
+			&AOCPlayerController::HandleMatchResultReady
+		);
 		HandleOrdersChanged();
+		
+		GameState->OnMatchPhaseChanged.AddDynamic(
+	this,
+	&AOCPlayerController::HandleMatchPhaseChanged
+);
 	}
+	
 	if (!TryUseSharedCamera())
 	{
 		GetWorldTimerManager().SetTimer(
@@ -78,7 +88,77 @@ void AOCPlayerController::BeginPlay()
 			true);
 	}
 	
+	
 }
+void AOCPlayerController::HandleMatchResultReady(
+	const FOCMatchResult& MatchResult
+)
+{
+	if (!ResultWidgetClass)
+	{
+		return;
+	}
+
+	if (!ResultWidget)
+	{
+		ResultWidget = CreateWidget<UOCResultWidget>(
+			this,
+			ResultWidgetClass
+		);
+	}
+
+	if (!ResultWidget)
+	{
+		return;
+	}
+
+	ResultWidget->SetResultValues(
+		0,
+		0,
+		0,
+		MatchResult.FinalScore
+	);
+
+	ResultWidget->SetStarThresholds(
+	MatchResult.FinalScore,
+		300,
+		600,
+		900
+	);
+	
+	const AOCGameState* GameState =
+	GetWorld()->GetGameState<AOCGameState>();
+
+	if (GameState)
+	{
+		ResultWidget->SetPlayerCount(
+			GameState->GetParticipatingPlayerCount()
+		);
+	}
+	ResultWidget->SetPlayer1Name(TEXT("Rabbit"));
+
+	if (GameState &&
+		GameState->GetParticipatingPlayerCount() >= 2)
+	{
+		ResultWidget->SetPlayer2Name(TEXT("Panda"));
+	}
+	ResultWidget->AddToViewport();
+
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(ResultWidget->TakeWidget());
+
+	SetInputMode(InputMode);
+	SetShowMouseCursor(true);
+	
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Result Ready - Score: %d / Stars: %d"),
+		MatchResult.FinalScore,
+		MatchResult.EarnedStars
+	);
+}
+	
 
 void AOCPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
@@ -232,13 +312,24 @@ void AOCPlayerController::HandleRemainingTimeChanged(float NewRemainingTime)
 	const AOCGameState* GameState =
 		GetWorld()->GetGameState<AOCGameState>();
 
-	if (!GameState ||
-		GameState->GetMatchPhase() != EOCMatchPhase::Playing)
+	if (!GameState)
 	{
 		return;
 	}
 
-	HUDWidget->SetTimer(NewRemainingTime, 120.0f);
+	if (GameState->GetMatchPhase() == EOCMatchPhase::Countdown)
+	{
+		HUDWidget->SetCountdown(
+			FMath::CeilToInt(NewRemainingTime)
+		);
+
+		return;
+	}
+
+	if (GameState->GetMatchPhase() == EOCMatchPhase::Playing)
+	{
+		HUDWidget->SetTimer(NewRemainingTime, 120.0f);
+	}
 }
 void AOCPlayerController::HandleComboChanged(
 	int32 NewComboCount,
@@ -289,5 +380,20 @@ void AOCPlayerController::HandleOrdersChanged()
 				++DisplayedOrderCount;
 			}
 		}
+	}
+}
+void AOCPlayerController::HandleMatchPhaseChanged(
+	EOCMatchPhase NewPhase,
+	EOCMatchPhase PreviousPhase
+)
+{
+	if (!HUDWidget)
+	{
+		return;
+	}
+
+	if (NewPhase == EOCMatchPhase::Playing)
+	{
+		HUDWidget->SetCountdown(0);
 	}
 }

@@ -7,6 +7,7 @@
 
 class UTexture2D;
 class UOCHUDWidget;
+class UOCResultWidget;
 UCLASS(Blueprintable)
 class OVERCOOKED_API AOCPlayerController : public APlayerController
 {
@@ -35,6 +36,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Input", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float GamepadDeadZone = 0.2f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|UI")
+TSubclassOf<UOCResultWidget> ResultWidgetClass;
+
+UPROPERTY()
+TObjectPtr<UOCResultWidget> ResultWidget;
 private:
 	UFUNCTION(Server, Reliable)
 	void ServerDebugCompleteOrder(int32 OrderIndex);
@@ -47,6 +53,13 @@ private:
 	void HandleComboChanged(int32 NewComboCount, int32 NewTipMultiplier);
 	UFUNCTION()
 	void HandleOrdersChanged();	
+	UFUNCTION()
+	void HandleMatchResultReady(const FOCMatchResult& MatchResult);
+	UFUNCTION()
+	void HandleMatchPhaseChanged(
+		EOCMatchPhase NewPhase,
+		EOCMatchPhase PreviousPhase
+	);
 	
 	bool TryUseSharedCamera();
 	void RefreshSharedCamera();

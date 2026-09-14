@@ -122,8 +122,8 @@ void UOCHUDWidget::AddOrder(UTexture2D* OrderTexture)
 		return;
 	}
 
-	OrderSizeBox->SetWidthOverride(190.0f);
-	OrderSizeBox->SetHeightOverride(200.0f);
+	OrderSizeBox->SetWidthOverride(165.0f);
+	OrderSizeBox->SetHeightOverride(175.0f);
 
 	UImage* OrderImage = NewObject<UImage>(this);
 
@@ -141,7 +141,7 @@ void UOCHUDWidget::AddOrder(UTexture2D* OrderTexture)
 
 	if (OrderSlot)
 	{
-		OrderSlot->SetPadding(FMargin(8.0f, 0.0f));
+		OrderSlot->SetPadding(FMargin(6.0f, 0.0f));
 		OrderSlot->SetHorizontalAlignment(HAlign_Center);
 		OrderSlot->SetVerticalAlignment(VAlign_Center);
 	}
@@ -166,5 +166,69 @@ void UOCHUDWidget::SetTipMultiplier(float Multiplier)
 		TipMultiplierText->SetText(
 			FText::FromString(MultiplierString)
 		);
+	}
+}
+void UOCHUDWidget::SetCountdown(int32 Count)
+{
+	if (Count == LastCountdownValue)
+	{
+		return;
+	}
+
+	LastCountdownValue = Count;
+	if (!CountdownNumberImage || !CountdownStartImage)
+	{
+		return;
+	}
+
+	// 기본 상태
+	CountdownNumberImage->SetVisibility(ESlateVisibility::Collapsed);
+	CountdownStartImage->SetVisibility(ESlateVisibility::Collapsed);
+
+	if (Count == 0)
+	{
+		if (CountdownTextureStart)
+		{
+			CountdownStartImage->SetBrushFromTexture(CountdownTextureStart);
+			CountdownStartImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+			if (CountdownStartPop)
+			{
+				PlayAnimation(CountdownStartPop);
+			}
+		}
+
+		return;
+	}
+
+	UTexture2D* Texture = nullptr;
+
+	switch (Count)
+	{
+	case 3:
+		Texture = CountdownTexture3;
+		break;
+
+	case 2:
+		Texture = CountdownTexture2;
+		break;
+
+	case 1:
+		Texture = CountdownTexture1;
+		break;
+
+	default:
+		return;
+	}
+
+	if (Texture)
+	{
+		CountdownNumberImage->SetBrushFromTexture(Texture);
+		CountdownNumberImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+		if (CountdownNumberPop)
+		{
+			PlayAnimation(CountdownNumberPop);
+		}
 	}
 }

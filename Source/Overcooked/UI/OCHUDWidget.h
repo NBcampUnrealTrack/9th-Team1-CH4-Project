@@ -10,6 +10,7 @@ class UHorizontalBox;
 class UTexture2D;
 class UProgressBar;
 class UWidgetAnimation;
+class UImage;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTimeOver);
 
@@ -40,6 +41,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HUD")
 	void SetTipMultiplier(float Multiplier);
 	
+	UFUNCTION(BlueprintCallable, Category = "Countdown")
+	void SetCountdown(int32 Count);
 protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> ScoreText;
@@ -58,6 +61,32 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TipMultiplierText;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> CountdownNumberImage;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> CountdownStartImage;
+
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> CountdownStartPop;
+	
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> CountdownNumberPop;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Countdown")
+	TObjectPtr<UTexture2D> CountdownTexture3;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Countdown")
+	TObjectPtr<UTexture2D> CountdownTexture2;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Countdown")
+	TObjectPtr<UTexture2D> CountdownTexture1;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Countdown")
+	TObjectPtr<UTexture2D> CountdownTextureStart;
+	
+	int32 LastCountdownValue = -1;
 	
 	bool bIsTimerWarning = false;
 	bool bTimeOverTriggered = false;
