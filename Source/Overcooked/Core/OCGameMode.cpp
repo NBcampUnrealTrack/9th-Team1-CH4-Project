@@ -177,7 +177,14 @@ bool AOCGameMode::SubmitDish(const FOCDishContents& Dish, EOCRecipeType& Matched
 		AwardOrderScore(*State, CompletedOrder, MatchingOrderIndex == 0);
 		if (State->GetActiveOrdersRef().IsEmpty())
 		{
-			GenerateOrder();
+			if (bUseSingleLettuceTestOrder)
+			{
+				FinishRound();
+			}
+			else
+			{
+				GenerateOrder();
+			}
 		}
 	}
 
@@ -209,7 +216,14 @@ bool AOCGameMode::DebugCompleteOrderAtIndex(const int32 OrderIndex)
 	BP_OnDishSubmitted(true, SelectedOrder.Recipe);
 	if (State->GetActiveOrdersRef().IsEmpty())
 	{
-		GenerateOrder();
+		if (bUseSingleLettuceTestOrder)
+		{
+			FinishRound();
+		}
+		else
+		{
+			GenerateOrder();
+		}
 	}
 	return true;
 }
@@ -408,7 +422,13 @@ void AOCGameMode::ShowResults()
 	Result.EarnedStars = CalculateEarnedStars(Result.FinalScore);
 	State->SetMatchResult(Result);
 	State->SetMatchPhase(EOCMatchPhase::Results);
+
+	UE_LOG(LogOCGameMode, Warning, TEXT("테스트 완료: 양상추 샐러드 주문 성공 / 최종 점수: %d / 별: %d"), Result.FinalScore,
+		Result.EarnedStars
+	);
+
 	BP_OnResultsReady();
+
 }
 
 void AOCGameMode::UpdateCountdown()
@@ -460,19 +480,47 @@ void AOCGameMode::ScheduleNextOrder()
 void AOCGameMode::GenerateOrder()
 {
 	AOCGameState* State = GetOCGameState();
-	if (!HasAuthority() || !IsValid(State) || State->GetMatchPhase() != EOCMatchPhase::Playing)
+
+	if (!HasAuthority()
+		|| !IsValid(State)
+		|| State->GetMatchPhase() != EOCMatchPhase::Playing)
 	{
 		return;
 	}
 
-	const TArray<FOCRecipeDefinition> Recipes = UOCRecipeLibrary::GetRecipeDefinitionsForStage(RecipeStage);
-	if (!Recipes.IsEmpty() && State->GetActiveOrdersRef().Num() < MaximumActiveOrders)
+	// 테스트 모드에서는 양상추 샐러드 주문을 처음 한 번만 생성합니다.
+	if (bUseSingleLettuceTestOrder)
+	{
+		if (NextOrderId == 0
+			&& State->GetActiveOrdersRef().IsEmpty())
+		{
+			FOCActiveOrder NewOrder;
+			NewOrder.OrderId = NextOrderId++;
+			NewOrder.Recipe = EOCRecipeType::LettuceSalad;
+			NewOrder.CreatedAtServerTime =
+				State->GetServerWorldTimeSeconds();
+			NewOrder.TimeLimit = OrderTipDecayDuration;
+
+			State->AddOrder(NewOrder);
+		}
+
+		return;
+	}
+
+	const TArray<FOCRecipeDefinition> Recipes =
+		UOCRecipeLibrary::GetRecipeDefinitionsForStage(RecipeStage);
+
+	if (!Recipes.IsEmpty()
+		&& State->GetActiveOrdersRef().Num() < MaximumActiveOrders)
 	{
 		FOCActiveOrder NewOrder;
 		NewOrder.OrderId = NextOrderId++;
-		NewOrder.Recipe = Recipes[FMath::RandRange(0, Recipes.Num() - 1)].Recipe;
-		NewOrder.CreatedAtServerTime = State->GetServerWorldTimeSeconds();
+		NewOrder.Recipe =
+			Recipes[FMath::RandRange(0, Recipes.Num() - 1)].Recipe;
+		NewOrder.CreatedAtServerTime =
+			State->GetServerWorldTimeSeconds();
 		NewOrder.TimeLimit = OrderTipDecayDuration;
+
 		State->AddOrder(NewOrder);
 	}
 

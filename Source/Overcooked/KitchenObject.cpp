@@ -7,6 +7,9 @@
 AKitchenObject::AKitchenObject()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	bReplicates = true;
+	SetReplicatingMovement(true);
 }
 
 void AKitchenObject::Interact_Implementation(

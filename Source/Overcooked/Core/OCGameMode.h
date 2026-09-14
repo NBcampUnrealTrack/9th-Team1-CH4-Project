@@ -68,6 +68,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Order", meta = (ClampMin = "1"))
 	int32 MaximumActiveOrders = 6;
 
+	// 켜면 양상추 샐러드 주문 한 개만 생성하고 완료 즉시 라운드를 종료합니다.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Order")
+	bool bUseSingleLettuceTestOrder = true;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Recipe")
 	EOCRecipeStage RecipeStage = EOCRecipeStage::Tutorial;
 

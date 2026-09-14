@@ -41,7 +41,8 @@ enum class EOCIngredientType : uint8
 	SalmonFillet,
 	Bacon,
 	Seaweed,
-	SeaUrchin
+	SeaUrchin,
+	None
 };
 
 UENUM(BlueprintType)

@@ -7,6 +7,8 @@
 #include "Engine/StaticMesh.h"
 #include "../Item/OverKitchenSettings.h"
 #include "../Item/OverPickupItem.h"
+#include "../APlayerCharacter.h"
+#include "../ItemHolderComponent.h"
 
 // 작업대 메시와 재료 한 개를 올려놓을 부착 지점을 생성합니다.
 AOverCuttingTable::AOverCuttingTable()
@@ -40,6 +42,114 @@ void AOverCuttingTable::OnConstruction(const FTransform& Transform)
 		(LocalMin.Y + LocalMax.Y) * 0.5f,
 		LocalMax.Z);
 	IngredientPoint->SetRelativeLocation(TopCenter + IngredientPointOffset);
+}
+
+void AOverCuttingTable::Interact_Implementation(AAPlayerCharacter* Player)
+{
+	if (!HasAuthority() || !Player)
+	{
+		return;
+	}
+
+	UItemHolderComponent* Holder =
+		Player->FindComponentByClass<UItemHolderComponent>();
+
+	if (!Holder)
+	{
+		return;
+	}
+
+	AKitchenObject* HeldObject = Holder->GetHeldObject();
+
+	// 손에 재료가 있으면 즉시 도마 위에 배치합니다.
+	if (HeldObject)
+	{
+		AOverPickupItem* HeldItem =
+			Cast<AOverPickupItem>(HeldObject);
+
+		if (!HeldItem)
+		{
+			return;
+		}
+
+		if (PlaceIngredient(HeldItem))
+		{
+			Holder->CompleteTransfer(HeldItem);
+		}
+
+		return;
+	}
+
+	// 손이 비었고 썰린 재료가 있으면 다시 손으로 가져옵니다.
+	if (IsValid(PlacedIngredient)
+		&& PlacedIngredient->IsChopped())
+	{
+		AOverPickupItem* ChoppedIngredient =
+			PlacedIngredient;
+
+		Holder->Hold(ChoppedIngredient);
+
+		if (Holder->GetHeldObject() == ChoppedIngredient)
+		{
+			PlacedIngredient = nullptr;
+		}
+
+		return;
+	}
+
+	// 손이 비었고 생재료가 있으면 썰기 타이머를 시작합니다.
+	if (!CanChopIngredient()
+		|| GetWorldTimerManager().IsTimerActive(ChoppingTimerHandle))
+	{
+		return;
+	}
+
+	ChoppingPlayer = Player;
+
+	const float SafeTickInterval =
+		FMath::Max(ChopTickInterval, 0.01f);
+
+	GetWorldTimerManager().SetTimer(
+		ChoppingTimerHandle,
+		this,
+		&AOverCuttingTable::AdvanceChoppingTick,
+		SafeTickInterval,
+		true
+	);
+}
+
+void AOverCuttingTable::StopInteract_Implementation(
+	AAPlayerCharacter* Player
+)
+{
+	if (!HasAuthority() || ChoppingPlayer.Get() != Player)
+	{
+		return;
+	}
+
+	GetWorldTimerManager().ClearTimer(ChoppingTimerHandle);
+	ChoppingPlayer.Reset();
+}
+
+void AOverCuttingTable::AdvanceChoppingTick()
+{
+	if (!HasAuthority()
+		|| !ChoppingPlayer.IsValid()
+		|| !CanChopIngredient())
+	{
+		GetWorldTimerManager().ClearTimer(ChoppingTimerHandle);
+		ChoppingPlayer.Reset();
+		return;
+	}
+
+	const float SafeTickInterval =
+		FMath::Max(ChopTickInterval, 0.01f);
+
+	if (AdvanceChopping(SafeTickInterval))
+	{
+		GetWorldTimerManager().ClearTimer(ChoppingTimerHandle);
+		ChoppingPlayer.Reset();
+	}
 }
 
 // 작업대가 비어 있고 재료를 배치할 수 있을 때 부착 후 보관합니다.

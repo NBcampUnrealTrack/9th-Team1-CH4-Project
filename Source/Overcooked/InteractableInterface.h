@@ -24,5 +24,8 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent)
 	void Interact(AAPlayerCharacter* Player);
+
+	UFUNCTION(BlueprintNativeEvent)
+	void StopInteract(AAPlayerCharacter* Player);
 	
 };

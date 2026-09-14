@@ -16,7 +16,6 @@ class OVERCOOKED_API AKitchenObject : public AActor, public IInteractableInterfa
 
 public:
 	AKitchenObject();
-	void Interact(AAPlayerCharacter* Player);
 
 	virtual void Interact_Implementation(AAPlayerCharacter* Player) override;
 };

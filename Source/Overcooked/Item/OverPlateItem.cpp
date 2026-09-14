@@ -4,6 +4,8 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "OverKitchenSettings.h"
+#include "../APlayerCharacter.h"
+#include "../ItemHolderComponent.h"
 
 // 접시 메시와 음식을 부착할 기준점을 생성합니다.
 AOverPlateItem::AOverPlateItem()
@@ -84,6 +86,26 @@ bool AOverPlateItem::HasFood() const
 	return IsValid(Food);
 }
 
+bool AOverPlateItem::BuildDishContents(FOCDishContents& OutDish) const
+{
+	OutDish.Ingredients.Reset();
+
+	if (!IsValid(Food))
+	{
+		return false;
+	}
+
+	FOCPreparedIngredient PreparedIngredient;
+
+	if (!Food->BuildPreparedIngredient(PreparedIngredient))
+	{
+		return false;
+	}
+
+	OutDish.Ingredients.Add(PreparedIngredient);
+	return true;
+}
+
 // 종료 시 부착된 음식이나 서빙 접시 등 관련 자원을 정리합니다.
 void AOverPlateItem::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
@@ -94,6 +116,36 @@ void AOverPlateItem::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 	// 종료 시 부착된 음식이나 서빙 접시 등 관련 자원을 정리합니다.
 	Super::EndPlay(EndPlayReason);
+}
+
+void AOverPlateItem::Interact_Implementation(AAPlayerCharacter* Player)
+{
+	if (!HasAuthority() || !Player || HasFood())
+	{
+		return;
+	}
+
+	UItemHolderComponent* Holder =
+		Player->FindComponentByClass<UItemHolderComponent>();
+
+	if (!Holder)
+	{
+		return;
+	}
+
+	AOverPickupItem* Ingredient =
+		Cast<AOverPickupItem>(Holder->GetHeldObject());
+
+	// 손에 든 썰기 완료 재료만 접시에 담습니다.
+	if (!Ingredient || !Ingredient->IsChopped())
+	{
+		return;
+	}
+
+	if (AddFood(Ingredient))
+	{
+		Holder->CompleteTransfer(Ingredient);
+	}
 }
 
 void AOverPlateItem::BeginPlay()

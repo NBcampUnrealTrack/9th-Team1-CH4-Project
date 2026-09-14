@@ -1,9 +1,12 @@
-// 프로젝트 설정의 Description 페이지에서 저작권 문구를 설정할 수 있습니다.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "../KitchenObject.h"
+#include "../PickupableInterface.h"
+#include "../Core/OCRecipeTypes.h"
+
 #include "OverPickupItem.generated.h"
 
 class UStaticMeshComponent;
@@ -20,7 +23,7 @@ enum class EOverIngredientState : uint8
 
 /** 캐릭터가 집어서 들거나 내려놓을 수 있는 채소·접시의 공통 클래스입니다. */
 UCLASS(Blueprintable)
-class OVERCOOKED_API AOverPickupItem : public AActor
+class OVERCOOKED_API AOverPickupItem : public AKitchenObject, public IPickupableInterface
 {
 	GENERATED_BODY()
 
@@ -30,8 +33,13 @@ public:
 	// 에디터에서 배치하거나 속성을 변경할 때 배치 설정을 갱신합니다.
 	virtual void OnConstruction(const FTransform& Transform) override;
 
-	// 손 부착 지점이 유효하고 들고 있지 않으면 부착하며, 성공 여부를 반환합니다.
-	bool PickUp(USceneComponent* HoldPoint, AActor* NewOwner);
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	// Owner와 bIsHeld 도착 순서가 달라도 손 부착을 다시 적용합니다.
+	virtual void OnRep_Owner() override;
+
+	bool PickUp(USceneComponent* HoldPoint, AActor* NewOwner, FName SocketName = NAME_None);
+
 	// 손에 든 아이템을 지정 지점에 고정하고 배치 성공 여부를 반환합니다.
 	bool PlaceOn(USceneComponent* PlacementPoint, AActor* NewOwner);
 	// 일반 탁자 윗면에 배치하고 다시 집을 수 있도록 조회 충돌을 켭니다.
@@ -49,7 +57,13 @@ public:
 	// 재료가 썰기 완료 상태인지 반환합니다.
 	bool IsChopped() const;
 
+	// 현재 아이템을 주문 판정용 재료 정보로 변환합니다.
+	bool BuildPreparedIngredient(FOCPreparedIngredient& OutIngredient) const;
+
+	virtual void Pickup_Implementation(AAPlayerCharacter* Player) override;
+
 protected:
+
 	virtual void BeginPlay() override;
 
 	// 접시 메시를 지정하고 썰기 기능과 물리 시뮬레이션을 끕니다.
@@ -58,7 +72,21 @@ protected:
 	/** 파생 재료 클래스가 원본과 썰린 메시를 생성자에서 지정할 때 사용합니다. */
 	void SetIngredientMeshes(UStaticMesh* RawMesh, UStaticMesh* NewChoppedMesh);
 
+	// 주문 시스템에서 구분할 재료 종류입니다.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ingredient")
+	EOCIngredientType RecipeIngredientType = EOCIngredientType::None;
+
 private:
+
+	UFUNCTION()
+	void OnRep_TransportState();
+
+	UFUNCTION()
+	void OnRep_IngredientState();
+
+	// 동기화된 상태에 맞춰 부착·물리·충돌을 적용합니다.
+	void ApplyReplicatedTransportState();
+
 	// 월드 경계 상자의 밑면 중앙을 목표 표면 위치에 맞춥니다.
 	void AlignBottomTo(const FVector& SurfaceCenter);
 
@@ -89,21 +117,38 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ingredient", meta = (ClampMin = "0.0", AllowPrivateAccess = "true"))
 	float RequiredChopSeconds = 2.0f;
 
+
 	// 현재 재료가 원재료인지 썰기 완료 상태인지 나타냅니다.
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Ingredient", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(ReplicatedUsing = OnRep_IngredientState, VisibleInstanceOnly, BlueprintReadOnly,
+		Category = "Ingredient", meta = (AllowPrivateAccess = "true")
+	)
 	EOverIngredientState IngredientState = EOverIngredientState::Raw;
 
 	// 현재까지 누적한 썰기 시간으로 단위는 초입니다.
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Ingredient", meta = (AllowPrivateAccess = "true"))
 	float ChopProgressSeconds = 0.0f;
 
+
+
 	// 캐릭터의 손에 부착되어 운반 중인지 나타냅니다.
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Pickup", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(
+		ReplicatedUsing = OnRep_TransportState, VisibleInstanceOnly, BlueprintReadOnly, Category = "Pickup",
+		meta = (AllowPrivateAccess = "true")
+	)
 	bool bIsHeld = false;
 
 	// 전용 지점에 고정된 상태이며 일반 탁자 배치는 이 값을 사용하지 않습니다.
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Pickup", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(
+		ReplicatedUsing = OnRep_TransportState, VisibleInstanceOnly, BlueprintReadOnly, Category = "Pickup",
+		meta = (AllowPrivateAccess = "true")
+	)
 	bool bIsPlaced = false;
+
+	// 일반 탁자에 고정되어 있지만 E키로 다시 집을 수 있는 상태입니다.
+	UPROPERTY(ReplicatedUsing = OnRep_TransportState, VisibleInstanceOnly, BlueprintReadOnly, Category = "Pickup",
+		meta = (AllowPrivateAccess = "true")
+	)
+	bool bIsOnTable = false;
 
 	// 원본 에셋에 대응하는 결과 메시를 로드하며, 대응 항목이 없으면 nullptr를 반환합니다.
 	UStaticMesh* FindAutomaticChoppedMesh() const;

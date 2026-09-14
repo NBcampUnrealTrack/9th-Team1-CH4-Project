@@ -10,6 +10,7 @@ class UStaticMesh;
 class UMaterialInterface;
 class UStaticMeshComponent;
 class USceneComponent;
+class AAPlayerCharacter;
 
 /** 기존 탁자에 서빙 기능을 추가하고 접시 제거와 빈 접시 반환을 관리합니다. */
 UCLASS(ClassGroup = (Overcooked), meta = (BlueprintSpawnableComponent))
@@ -20,6 +21,9 @@ class OVERCOOKED_API UOverServingTableComponent : public UActorComponent
 public:
 	// 타이머로 서빙을 처리하므로 매 프레임 갱신을 비활성화합니다.
 	UOverServingTableComponent();
+
+	// 캐릭터가 들고 있는 음식 접시를 서빙대로 전달합니다.
+	bool TryServeHeldPlate(AAPlayerCharacter* Player);
 	// 음식이 담긴 접시를 받아 반환 위치를 저장하고 정리 타이머를 시작합니다.
 	bool Serve(AOverPickupItem* Ingredient);
 	// 상호작용 거리 판정에 사용할 배치 지점의 월드 위치를 반환합니다.

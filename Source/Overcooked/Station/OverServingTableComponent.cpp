@@ -7,31 +7,130 @@
 #include "../Item/OverPickupItem.h"
 #include "../Item/OverPlateItem.h"
 
+#include "../APlayerCharacter.h"
+#include "../ItemHolderComponent.h"
+#include "../Core/OCGameMode.h"
+
 // 타이머로 서빙을 처리하므로 매 프레임 갱신을 비활성화합니다.
 UOverServingTableComponent::UOverServingTableComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
+bool UOverServingTableComponent::TryServeHeldPlate(AAPlayerCharacter* Player)
+{
+	AActor* Table = GetOwner();
+
+	if (!IsValid(Player)
+		|| !IsValid(Table)
+		|| !Table->HasAuthority()
+		|| !bReady
+		|| !FoodPoint)
+	{
+		return false;
+	}
+
+	UItemHolderComponent* Holder =
+		Player->FindComponentByClass<UItemHolderComponent>();
+
+	if (!Holder)
+	{
+		return false;
+	}
+
+	AOverPlateItem* HeldPlate =
+		Cast<AOverPlateItem>(Holder->GetHeldObject());
+
+	if (!IsValid(HeldPlate))
+	{
+		return false;
+	}
+
+	FOCDishContents Dish;
+
+	if (!HeldPlate->BuildDishContents(Dish))
+	{
+		return false;
+	}
+
+	AOCGameMode* GameMode =
+		GetWorld()->GetAuthGameMode<AOCGameMode>();
+
+	if (!IsValid(GameMode))
+	{
+		return false;
+	}
+
+	EOCRecipeType MatchedRecipe =
+		EOCRecipeType::None;
+
+	// 현재 주문과 일치하는 음식만 서빙받습니다.
+	if (!GameMode->SubmitDish(Dish, MatchedRecipe))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("서빙 실패: 현재 주문과 일치하지 않음")
+		);
+
+		return false;
+	}
+
+	if (!Serve(HeldPlate))
+	{
+		return false;
+	}
+
+	return Holder->CompleteTransfer(HeldPlate);
+}
+
 // 게임 시작 시 필요한 배치와 구성 요소를 준비합니다.
 void UOverServingTableComponent::BeginPlay()
 {
-	// 게임 시작 시 필요한 배치와 구성 요소를 준비합니다.
 	Super::BeginPlay();
+
 	AActor* Table = GetOwner();
-	UStaticMeshComponent* TableMesh = Table->FindComponentByClass<UStaticMeshComponent>();
+
+	if (!Table)
+	{
+		return;
+	}
+
+	UStaticMeshComponent* TableMesh =
+		Table->FindComponentByClass<UStaticMeshComponent>();
+
 	if (!TableMesh)
 	{
 		return;
 	}
 
 	const FBox Bounds = TableMesh->Bounds.GetBox();
-	// 탁자에 고정 접시를 생성하지 않고 플레이어가 가져온 접시를 받습니다.
-	FoodPoint = NewObject<USceneComponent>(Table, TEXT("ServingFoodPoint"));
+
+	FoodPoint = NewObject<USceneComponent>(
+		Table,
+		TEXT("ServingFoodPoint")
+	);
+
+	if (!FoodPoint)
+	{
+		return;
+	}
+
+	// 서버와 클라이언트가 부착 대상을 같은 이름으로 식별하게 합니다.
+	FoodPoint->SetNetAddressable();
+
 	Table->AddInstanceComponent(FoodPoint);
 	FoodPoint->SetupAttachment(Table->GetRootComponent());
 	FoodPoint->RegisterComponent();
-	FoodPoint->SetWorldLocation(FVector(Bounds.GetCenter().X, Bounds.GetCenter().Y, Bounds.Max.Z + SurfaceOffset));
+
+	FoodPoint->SetWorldLocation(
+		FVector(
+			Bounds.GetCenter().X,
+			Bounds.GetCenter().Y,
+			Bounds.Max.Z + SurfaceOffset
+		)
+	);
+
 	bReady = true;
 }
 

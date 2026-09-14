@@ -4,15 +4,17 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "../InteractableInterface.h"
 #include "OverCuttingTable.generated.h"
 
 class AOverPickupItem;
 class USceneComponent;
 class UStaticMeshComponent;
+class AAPlayerCharacter;
 
 /** 재료 한 개를 올려놓고 썰 수 있는 작업대입니다. */
 UCLASS(Blueprintable)
-class OVERCOOKED_API AOverCuttingTable : public AActor
+class OVERCOOKED_API AOverCuttingTable : public AActor, public IInteractableInterface
 {
 	GENERATED_BODY()
 
@@ -22,6 +24,10 @@ public:
 
 	// 에디터에서 배치하거나 속성을 변경할 때 배치 설정을 갱신합니다.
 	virtual void OnConstruction(const FTransform& Transform) override;
+
+	virtual void Interact_Implementation(AAPlayerCharacter* Player) override;
+
+	virtual void StopInteract_Implementation(AAPlayerCharacter* Player) override;
 
 	// 작업대가 비어 있고 재료를 배치할 수 있을 때 부착 후 보관합니다.
 	bool PlaceIngredient(AOverPickupItem* Ingredient);
@@ -40,6 +46,20 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
+
+	// F키를 누르고 있는 동안 서버에서 썰기 시간을 누적합니다.
+	void AdvanceChoppingTick();
+
+	// 썰기 시간을 누적할 주기입니다.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Cutting Table",
+		meta = (ClampMin = "0.01", AllowPrivateAccess = "true"))
+	float ChopTickInterval = 0.1f;
+
+	// 현재 이 도마를 사용해 썰고 있는 플레이어입니다.
+	TWeakObjectPtr<AAPlayerCharacter> ChoppingPlayer;
+
+	FTimerHandle ChoppingTimerHandle;
+
 	// 작업대의 외형과 충돌을 담당하는 루트 메시입니다.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cutting Table", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UStaticMeshComponent> TableMesh;

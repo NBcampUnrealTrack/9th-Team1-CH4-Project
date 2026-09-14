@@ -104,27 +104,40 @@ void AAPlayerCharacter::SetupPlayerInputComponent(
         Cast<UEnhancedInputComponent>(PlayerInputComponent))
     {
         EnhancedInputComponent->BindAction(
-        MoveAction,
-        ETriggerEvent::Triggered,
-        this,
-      &AAPlayerCharacter::Move
-);
+            MoveAction,
+            ETriggerEvent::Triggered,
+            this,
+            &AAPlayerCharacter::Move
+        );
+
         EnhancedInputComponent->BindAction(
-     InteractAction,
-      ETriggerEvent::Started,
-      this,
-     &AAPlayerCharacter::Interact
-);
+            InteractAction,
+            ETriggerEvent::Started,
+            this,
+            &AAPlayerCharacter::Interact
+        );
+
         EnhancedInputComponent->BindAction(
-        PickupDropAction,
-        ETriggerEvent::Started,
-         this,
-         &AAPlayerCharacter::PickupOrDrop
-    );   
-        
+            InteractAction,
+            ETriggerEvent::Completed,
+            this,
+            &AAPlayerCharacter::StopInteract
+        );
+
+        EnhancedInputComponent->BindAction(
+            InteractAction,
+            ETriggerEvent::Canceled,
+            this,
+            &AAPlayerCharacter::StopInteract
+        );
+
+        EnhancedInputComponent->BindAction(
+            PickupDropAction,
+            ETriggerEvent::Started,
+            this,
+            &AAPlayerCharacter::PickupOrDrop
+        );
     }
-    
-    
 }
 
 
@@ -147,26 +160,56 @@ void AAPlayerCharacter::Move(
 }
 
 
+
 void AAPlayerCharacter::Interact()
 {
     UE_LOG(
-       LogTemp,
-       Warning,
-       TEXT("PlayerCharacter::Interact 호출")
-       
-       );
-    
-    InteractionComponent->TryInteract();
+        LogTemp,
+        Warning,
+        TEXT("PlayerCharacter::Interact 호출")
+    );
+
+    if (!HasAuthority())
+    {
+        ServerInteract();
+        return;
+    }
+
+    if (InteractionComponent)
+    {
+        InteractionComponent->TryInteract();
+    }
+}
+
+void AAPlayerCharacter::StopInteract()
+{
+    if (!HasAuthority())
+    {
+        ServerStopInteract();
+        return;
+    }
+
+    if (InteractionComponent)
+    {
+        InteractionComponent->StopInteract();
+    }
 }
 
 void AAPlayerCharacter::PickupOrDrop()
 {
-    if (!ItemHolderComponent)
+    if (!HasAuthority())
+    {
+        ServerPickupOrDrop();
+        return;
+    }
+
+    if (!ItemHolderComponent
+        || !InteractionComponent)
     {
         UE_LOG(
             LogTemp,
             Warning,
-            TEXT("PickupOrDrop: ItemHolderComponent가 없음")
+            TEXT("PickupOrDrop: 필요한 컴포넌트가 없음")
         );
 
         return;
@@ -174,6 +217,14 @@ void AAPlayerCharacter::PickupOrDrop()
 
     if (ItemHolderComponent->GetHeldObject())
     {
+        // 일반 탁자를 바라보고 있다면 탁자 배치로 E키 입력을 처리합니다.
+        if (InteractionComponent->
+            TryPlaceHeldItemOnTable())
+        {
+            return;
+        }
+
+        // 일반 탁자가 없다면 기존처럼 캐릭터 앞 바닥에 내려놓습니다.
         ItemHolderComponent->Release();
         return;
     }
@@ -183,12 +234,21 @@ void AAPlayerCharacter::PickupOrDrop()
         Warning,
         TEXT("PickupOrDrop: 현재 들고 있는 객체가 없음")
     );
-    
-    if (ItemHolderComponent->GetHeldObject())
-    {
-        ItemHolderComponent->Release();
-        return;
-    }
 
     InteractionComponent->TryPickup();
+}
+
+void AAPlayerCharacter::ServerInteract_Implementation()
+{
+    Interact();
+}
+
+void AAPlayerCharacter::ServerStopInteract_Implementation()
+{
+    StopInteract();
+}
+
+void AAPlayerCharacter::ServerPickupOrDrop_Implementation()
+{
+    PickupOrDrop();
 }

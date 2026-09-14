@@ -19,6 +19,8 @@ public:
 
 	void Hold(AKitchenObject* Object);
 	void Release();
+	bool CompleteTransfer(AKitchenObject* Object);
+
 
 	AKitchenObject* GetHeldObject() const;
 

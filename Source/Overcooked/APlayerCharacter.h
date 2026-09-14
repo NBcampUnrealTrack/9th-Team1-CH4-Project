@@ -50,7 +50,17 @@ private:
 
 	void Move(const FInputActionValue& Value);
 	void Interact();
+	void StopInteract();
 	void PickupOrDrop();
+
+	UFUNCTION(Server, Reliable)
+	void ServerInteract();
+
+	UFUNCTION(Server, Reliable)
+	void ServerStopInteract();
+
+	UFUNCTION(Server, Reliable)
+	void ServerPickupOrDrop();
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction",meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UInteractionComponent> InteractionComponent;

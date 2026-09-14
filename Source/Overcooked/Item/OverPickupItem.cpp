@@ -5,6 +5,11 @@
 #include "Engine/CollisionProfile.h"
 #include "Engine/StaticMesh.h"
 #include "OverKitchenSettings.h"
+#include "../APlayerCharacter.h"
+#include "../ItemHolderComponent.h"
+#include "Net/UnrealNetwork.h"
+#include "Components/SkeletalMeshComponent.h"
+
 
 // 물리 충돌이 가능한 아이템 메시를 만들고 기본 재료를 설정합니다.
 AOverPickupItem::AOverPickupItem()
@@ -33,8 +38,129 @@ void AOverPickupItem::OnConstruction(const FTransform& Transform)
 	}
 }
 
+void AOverPickupItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AOverPickupItem, IngredientState);
+	DOREPLIFETIME(AOverPickupItem, bIsHeld);
+	DOREPLIFETIME(AOverPickupItem, bIsPlaced);
+	DOREPLIFETIME(AOverPickupItem, bIsOnTable);
+}
+
+void AOverPickupItem::OnRep_Owner()
+{
+	Super::OnRep_Owner();
+
+	// 상태보다 Owner가 늦게 도착한 경우 다시 손에 부착합니다.
+	if (bIsHeld)
+	{
+		ApplyReplicatedTransportState();
+	}
+}
+
+void AOverPickupItem::OnRep_TransportState()
+{
+	ApplyReplicatedTransportState();
+}
+
+void AOverPickupItem::OnRep_IngredientState()
+{
+	if (!ItemMesh
+		|| IngredientState != EOverIngredientState::Chopped)
+	{
+		return;
+	}
+
+	if (!ChoppedMesh && bAutoSelectChoppedMesh)
+	{
+		ChoppedMesh = FindAutomaticChoppedMesh();
+	}
+
+	if (ChoppedMesh)
+	{
+		ItemMesh->SetStaticMesh(ChoppedMesh);
+	}
+}
+
+void AOverPickupItem::ApplyReplicatedTransportState()
+{
+	if (!ItemMesh)
+	{
+		return;
+	}
+
+	if (bIsHeld)
+	{
+		ItemMesh->SetSimulatePhysics(false);
+		ItemMesh->SetCollisionEnabled(
+			ECollisionEnabled::NoCollision
+		);
+		SetActorEnableCollision(false);
+
+		if (AAPlayerCharacter* HoldingPlayer =
+			Cast<AAPlayerCharacter>(GetOwner()))
+		{
+			if (USkeletalMeshComponent* PlayerMesh =
+				HoldingPlayer->GetMesh())
+			{
+				AttachToComponent(
+					PlayerMesh,
+					FAttachmentTransformRules::
+					SnapToTargetNotIncludingScale,
+					TEXT("HoldSocket")
+				);
+
+				SetActorRelativeLocation(
+					HeldTransform.GetLocation()
+				);
+
+				SetActorRelativeRotation(
+					HeldTransform.Rotator()
+				);
+			}
+		}
+
+		return;
+	}
+
+	if (bIsPlaced)
+	{
+		ItemMesh->SetSimulatePhysics(false);
+		SetActorEnableCollision(false);
+		return;
+	}
+
+	if (bIsOnTable)
+	{
+		// 탁자 위에서는 물리로 떨어지지 않게 고정합니다.
+		ItemMesh->SetSimulatePhysics(false);
+
+		// 서버의 E키 검색에 잡히도록 조회 충돌만 켭니다.
+		SetActorEnableCollision(true);
+		ItemMesh->SetCollisionEnabled(
+			ECollisionEnabled::QueryOnly
+		);
+
+		return;
+	}
+
+	// 아무 곳에도 고정되지 않았다면 바닥에 떨어진 상태입니다.
+	DetachFromActor(
+		FDetachmentTransformRules::KeepWorldTransform
+	);
+
+	SetActorEnableCollision(true);
+
+	ItemMesh->SetCollisionEnabled(
+		ECollisionEnabled::QueryAndPhysics
+	);
+
+	ItemMesh->SetSimulatePhysics(true);
+}
+
 // 손 부착 지점이 유효하고 들고 있지 않으면 부착하며, 성공 여부를 반환합니다.
-bool AOverPickupItem::PickUp(USceneComponent* HoldPoint, AActor* NewOwner)
+bool AOverPickupItem::PickUp(USceneComponent* HoldPoint, AActor* NewOwner, FName SocketName)
 {
 	if (!HoldPoint || bIsHeld)
 	{
@@ -45,11 +171,14 @@ bool AOverPickupItem::PickUp(USceneComponent* HoldPoint, AActor* NewOwner)
 	ItemMesh->SetSimulatePhysics(false);
 	SetActorEnableCollision(false);
 	SetOwner(NewOwner);
-	AttachToComponent(HoldPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	AttachToComponent(HoldPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
 	SetActorRelativeLocation(HeldTransform.GetLocation());
 	SetActorRelativeRotation(HeldTransform.Rotator());
 	bIsHeld = true;
 	bIsPlaced = false;
+	bIsOnTable = false;
+	ForceNetUpdate();
+
 
 	return true;
 }
@@ -73,6 +202,8 @@ bool AOverPickupItem::PlaceOn(USceneComponent* PlacementPoint, AActor* NewOwner)
 	AlignBottomTo(PlacementPoint->GetComponentLocation());
 	bIsHeld = false;
 	bIsPlaced = true;
+	bIsOnTable = false;
+	ForceNetUpdate();
 
 	return true;
 }
@@ -88,17 +219,38 @@ void AOverPickupItem::AlignBottomTo(const FVector& SurfaceCenter)
 // 일반 탁자 윗면에 배치하고 다시 집을 수 있도록 조회 충돌을 켭니다.
 bool AOverPickupItem::PlaceOnTable(UStaticMeshComponent* TableMesh)
 {
-	if (!IsValid(TableMesh) || !PlaceOn(TableMesh, TableMesh->GetOwner()))
+	if (!IsValid(TableMesh)
+		|| !PlaceOn(TableMesh, TableMesh->GetOwner()))
 	{
 		return false;
 	}
-	const FBox Bounds = TableMesh->Bounds.GetBox();
-	// 월드 경계 상자의 밑면 중앙을 목표 표면 위치에 맞춥니다.
-	AlignBottomTo(FVector(Bounds.GetCenter().X, Bounds.GetCenter().Y, Bounds.Max.Z + TableSurfaceOffset));
-	// 일반 탁자에서는 다시 집을 수 있도록 조회 충돌만 켜고 물리는 끈 상태로 둡니다.
+
+	const FBox TableBounds =
+		TableMesh->Bounds.GetBox();
+
+	const FVector TableSurfaceCenter(
+		TableBounds.GetCenter().X,
+		TableBounds.GetCenter().Y,
+		TableBounds.Max.Z + TableSurfaceOffset
+	);
+
+	// 아이템의 밑면을 탁자 윗면 중앙에 맞춥니다.
+	AlignBottomTo(TableSurfaceCenter);
+
+	// 전용 시설 배치가 아니라 일반 탁자 배치 상태로 변경합니다.
 	bIsPlaced = false;
+	bIsOnTable = true;
+
+	// 물리는 끄되 E키 픽업 검사는 가능하게 합니다.
+	ItemMesh->SetSimulatePhysics(false);
 	SetActorEnableCollision(true);
-	ItemMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+
+	ItemMesh->SetCollisionEnabled(
+		ECollisionEnabled::QueryOnly
+	);
+
+	ForceNetUpdate();
+
 	return true;
 }
 
@@ -119,6 +271,9 @@ void AOverPickupItem::Drop(const FVector& DropLocation, const FRotator& DropRota
 	ItemMesh->SetSimulatePhysics(true);
 	bIsHeld = false;
 	bIsPlaced = false;
+	bIsOnTable = false;
+
+	ForceNetUpdate();
 }
 
 // 손에 들려 있거나 전용 배치 상태인 아이템은 일반 줍기 대상에서 제외합니다.
@@ -163,6 +318,8 @@ bool AOverPickupItem::AdvanceChopping(float DeltaSeconds)
 		AlignBottomTo(SurfaceCenter);
 	}
 
+	ForceNetUpdate();
+
 	return true;
 }
 
@@ -170,6 +327,33 @@ bool AOverPickupItem::AdvanceChopping(float DeltaSeconds)
 bool AOverPickupItem::IsChopped() const
 {
 	return IngredientState == EOverIngredientState::Chopped;
+}
+
+bool AOverPickupItem::BuildPreparedIngredient(FOCPreparedIngredient& OutIngredient) const
+{
+	if (RecipeIngredientType == EOCIngredientType::None)
+	{
+		return false;
+	}
+
+	OutIngredient.Ingredient = RecipeIngredientType;
+	OutIngredient.State = IsChopped() ? EOCIngredientState::Chopped : EOCIngredientState::Whole;
+
+	return true;
+}
+
+void AOverPickupItem::Pickup_Implementation(AAPlayerCharacter* Player)
+{
+	if (!Player)
+	{
+		return;
+	}
+
+	if (UItemHolderComponent* ItemHolder =
+		Player->FindComponentByClass<UItemHolderComponent>())
+	{
+		ItemHolder->Hold(this);
+	}
 }
 
 // 접시 메시를 지정하고 썰기 기능과 물리 시뮬레이션을 끕니다.
