@@ -395,3 +395,8 @@ void AOverPickupItem::BeginPlay()
         ChoppedMesh = FindAutomaticChoppedMesh();
     }
 }
+
+void AOverPickupItem::SetChoppingEnabled(const bool bEnabled)
+{
+	bCanBeChopped = bEnabled;
+}
