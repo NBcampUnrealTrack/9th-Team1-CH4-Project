@@ -14,9 +14,11 @@ public class Overcooked : ModuleRules
 				"Engine",
 				"InputCore",
 				"EnhancedInput",
-				"UMG"
+				"UMG",
+				"DeveloperSettings"
 			}
 		);
+
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
