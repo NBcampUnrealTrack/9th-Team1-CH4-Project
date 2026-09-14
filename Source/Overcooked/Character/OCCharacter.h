@@ -4,6 +4,8 @@
 #include "GameFramework/Character.h"
 #include "OCCharacter.generated.h"
 
+class UWidgetComponent;
+
 UCLASS(Blueprintable)
 class OVERCOOKED_API AOCCharacter : public ACharacter
 {
@@ -11,4 +13,8 @@ class OVERCOOKED_API AOCCharacter : public ACharacter
 
 public:
 	AOCCharacter();
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Overcooked|UI")
+	TObjectPtr<UWidgetComponent> InvalidOrderWidgetComponent;
 };

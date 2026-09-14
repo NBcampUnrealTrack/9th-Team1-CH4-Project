@@ -3,10 +3,11 @@
 
 #include "APlayerCharacter.h"
 #include "Camera/CameraComponent.h"
+#include "Components/WidgetComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "InteractionComponent.h"
-#include "ItemHolderComponent.h"
+#include "../Interaction/InteractionComponent.h"
+#include "../Item/ItemHolderComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 
@@ -60,7 +61,26 @@ AAPlayerCharacter::AAPlayerCharacter()
     CreateDefaultSubobject<UItemHolderComponent>(
         TEXT("ItemHolderComponent")
     );
-    
+    InvalidOrderWidgetComponent =
+    CreateDefaultSubobject<UWidgetComponent>(
+        TEXT("InvalidOrderWidget")
+    );
+
+    InvalidOrderWidgetComponent->SetupAttachment(RootComponent);
+
+    InvalidOrderWidgetComponent->SetRelativeLocation(
+        FVector(0.0f, 0.0f, 140.0f)
+    );
+
+    InvalidOrderWidgetComponent->SetWidgetSpace(
+        EWidgetSpace::Screen
+    );
+
+    InvalidOrderWidgetComponent->SetDrawSize(
+        FVector2D(160.0f, 160.0f)
+    );
+
+    InvalidOrderWidgetComponent->SetVisibility(false);
     
     
     bUseControllerRotationYaw = false;
@@ -251,4 +271,28 @@ void AAPlayerCharacter::ServerStopInteract_Implementation()
 void AAPlayerCharacter::ServerPickupOrDrop_Implementation()
 {
     PickupOrDrop();
+}
+
+void AAPlayerCharacter::ShowInvalidOrderPopup()
+{
+    if (!InvalidOrderWidgetComponent)
+    {
+        return;
+    }
+
+    InvalidOrderWidgetComponent->SetVisibility(true);
+
+    FTimerHandle HideTimerHandle;
+    GetWorld()->GetTimerManager().SetTimer(
+        HideTimerHandle,
+        [this]()
+        {
+            if (InvalidOrderWidgetComponent)
+            {
+                InvalidOrderWidgetComponent->SetVisibility(false);
+            }
+        },
+        1.1f,
+        false
+    );
 }

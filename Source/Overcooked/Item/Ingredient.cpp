@@ -1,5 +1,5 @@
 #include "Ingredient.h"
-#include "APlayerCharacter.h"
+#include "../Character/APlayerCharacter.h"
 #include "ItemHolderComponent.h"
 
 AIngredient::AIngredient()

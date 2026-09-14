@@ -50,6 +50,23 @@ void AOCPlayerController::BeginPlay()
 );
 
 		HandleRemainingTimeChanged(GameState->GetRemainingTime());
+		
+		GameState->OnComboChanged.AddDynamic(
+	this,
+	&AOCPlayerController::HandleComboChanged
+);
+
+		HandleComboChanged(
+			GameState->GetComboCount(),
+			GameState->GetTipMultiplier()
+		);
+		
+		GameState->OnOrdersChanged.AddDynamic(
+	this,
+	&AOCPlayerController::HandleOrdersChanged
+);
+
+		HandleOrdersChanged();
 	}
 	if (!TryUseSharedCamera())
 	{
@@ -222,4 +239,55 @@ void AOCPlayerController::HandleRemainingTimeChanged(float NewRemainingTime)
 	}
 
 	HUDWidget->SetTimer(NewRemainingTime, 120.0f);
+}
+void AOCPlayerController::HandleComboChanged(
+	int32 NewComboCount,
+	int32 NewTipMultiplier)
+{
+	if (HUDWidget)
+	{
+		HUDWidget->SetTipMultiplier(
+			static_cast<float>(NewTipMultiplier)
+		);
+	}
+}
+void AOCPlayerController::HandleOrdersChanged()
+{
+	if (!HUDWidget)
+	{
+		return;
+	}
+
+	const AOCGameState* GameState =
+		GetWorld()->GetGameState<AOCGameState>();
+
+	if (!GameState)
+	{
+		return;
+	}
+
+	HUDWidget->ClearOrders();
+
+	const TArray<FOCActiveOrder>& Orders =
+		GameState->GetActiveOrdersRef();
+
+	int32 DisplayedOrderCount = 0;
+
+	for (const FOCActiveOrder& Order : Orders)
+	{
+		if (DisplayedOrderCount >= 5)
+		{
+			break;
+		}
+
+		if (const TObjectPtr<UTexture2D>* FoundTexture =
+			OrderCardTextures.Find(Order.Recipe))
+		{
+			if (*FoundTexture)
+			{
+				HUDWidget->AddOrder(*FoundTexture);
+				++DisplayedOrderCount;
+			}
+		}
+	}
 }

@@ -3,10 +3,10 @@
 
 #include "ItemHolderComponent.h"
 #include "KitchenObject.h"
-#include "APlayerCharacter.h"
+#include "../Character/APlayerCharacter.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "Item/OverPickupItem.h"
+#include "../Item/OverPickupItem.h"
 
 
 UItemHolderComponent::UItemHolderComponent()

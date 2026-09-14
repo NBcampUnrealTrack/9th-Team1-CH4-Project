@@ -3,8 +3,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "../KitchenObject.h"
-#include "../PickupableInterface.h"
+#include "../Item//KitchenObject.h"
+#include "../Interaction/PickupableInterface.h"
 #include "../Core/OCRecipeTypes.h"
 
 #include "OverPickupItem.generated.h"

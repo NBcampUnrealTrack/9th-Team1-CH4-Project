@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "../InteractableInterface.h"
+#include "../Interaction/InteractableInterface.h"
 #include "OverCuttingTable.generated.h"
 
 class AOverPickupItem;

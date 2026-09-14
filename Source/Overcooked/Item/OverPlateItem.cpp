@@ -7,8 +7,8 @@
 #include "UObject/ConstructorHelpers.h"
 #include "OverKitchenSettings.h"
 #include "../Core/OCRecipeLibrary.h"
-#include "../APlayerCharacter.h"
-#include "../ItemHolderComponent.h"
+#include "../Character/APlayerCharacter.h"
+#include "../Item/ItemHolderComponent.h"
 
 // 접시 메시와 음식을 부착할 기준점을 생성합니다.
 AOverPlateItem::AOverPlateItem()

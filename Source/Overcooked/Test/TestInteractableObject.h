@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "KitchenObject.h"
+#include "../Item/KitchenObject.h"
 #include "TestInteractableObject.generated.h"
 
 UCLASS()

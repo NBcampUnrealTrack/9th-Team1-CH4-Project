@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "KitchenObject.h"
-#include "PickupableInterface.h"
+#include "../Interaction/PickupableInterface.h"
 #include "Ingredient.generated.h"
 
 

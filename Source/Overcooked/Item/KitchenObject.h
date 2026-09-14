@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "InteractableInterface.h"
+#include "../Interaction/InteractableInterface.h"
 #include "GameFramework/Actor.h"
 #include "KitchenObject.generated.h"
 

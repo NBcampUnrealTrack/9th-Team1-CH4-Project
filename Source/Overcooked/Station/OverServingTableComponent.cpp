@@ -7,8 +7,8 @@
 #include "../Item/OverPickupItem.h"
 #include "../Item/OverPlateItem.h"
 
-#include "../APlayerCharacter.h"
-#include "../ItemHolderComponent.h"
+#include "../Character/APlayerCharacter.h"
+#include "../Item/ItemHolderComponent.h"
 #include "../Core/OCGameMode.h"
 
 // 타이머로 서빙을 처리하므로 매 프레임 갱신을 비활성화합니다.
@@ -72,6 +72,8 @@ bool UOverServingTableComponent::TryServeHeldPlate(AAPlayerCharacter* Player)
 			Warning,
 			TEXT("서빙 실패: 현재 주문과 일치하지 않음")
 		);
+
+		Player->ShowInvalidOrderPopup();
 
 		return false;
 	}

@@ -1,15 +1,15 @@
 #include "InteractionComponent.h"
-#include "APlayerCharacter.h"
+#include "../Character/APlayerCharacter.h"
 #include "InteractableInterface.h"
 #include "PickupableInterface.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/OverlapResult.h"
 #include "GameFramework/Actor.h"
-#include "Station/OverServingTableComponent.h"
+#include "../Station/OverServingTableComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "Item/OverKitchenSettings.h"
-#include "ItemHolderComponent.h"
-#include "Item/OverPickupItem.h"
+#include "../Item/OverKitchenSettings.h"
+#include "../Item/ItemHolderComponent.h"
+#include "../Item/OverPickupItem.h"
 
 UInteractionComponent::UInteractionComponent()
 {

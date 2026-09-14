@@ -5,8 +5,8 @@
 #include "Engine/CollisionProfile.h"
 #include "Engine/StaticMesh.h"
 #include "OverKitchenSettings.h"
-#include "../APlayerCharacter.h"
-#include "../ItemHolderComponent.h"
+#include "../Character/APlayerCharacter.h"
+#include "../Item/ItemHolderComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/SkeletalMeshComponent.h"
 

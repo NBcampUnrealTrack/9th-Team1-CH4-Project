@@ -7,8 +7,8 @@
 #include "Engine/StaticMesh.h"
 #include "../Item/OverKitchenSettings.h"
 #include "../Item/OverPickupItem.h"
-#include "../APlayerCharacter.h"
-#include "../ItemHolderComponent.h"
+#include "../Character/APlayerCharacter.h"
+#include "../Item/ItemHolderComponent.h"
 
 // 작업대 메시와 재료 한 개를 올려놓을 부착 지점을 생성합니다.
 AOverCuttingTable::AOverCuttingTable()

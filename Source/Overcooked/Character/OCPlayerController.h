@@ -1,9 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "../Core/OCRecipeTypes.h"
 #include "GameFramework/PlayerController.h"
 #include "OCPlayerController.generated.h"
 
+class UTexture2D;
 class UOCHUDWidget;
 UCLASS(Blueprintable)
 class OVERCOOKED_API AOCPlayerController : public APlayerController
@@ -27,6 +29,9 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UOCHUDWidget> HUDWidget;
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|UI")
+	TMap<EOCRecipeType, TObjectPtr<UTexture2D>> OrderCardTextures;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Input", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float GamepadDeadZone = 0.2f;
 
@@ -38,6 +43,10 @@ private:
 	void HandleScoreChanged(int32 NewScore, int32 ScoreDelta);
 	UFUNCTION()
 	void HandleRemainingTimeChanged(float NewRemainingTime);
+	UFUNCTION()
+	void HandleComboChanged(int32 NewComboCount, int32 NewTipMultiplier);
+	UFUNCTION()
+	void HandleOrdersChanged();	
 	
 	bool TryUseSharedCamera();
 	void RefreshSharedCamera();
