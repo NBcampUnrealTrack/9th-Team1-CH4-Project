@@ -58,7 +58,7 @@ public:
 	bool IsChopped() const;
 
 	// 현재 아이템을 주문 판정용 재료 정보로 변환합니다.
-	bool BuildPreparedIngredient(FOCPreparedIngredient& OutIngredient) const;
+	virtual bool BuildPreparedIngredient(FOCPreparedIngredient& OutIngredient) const;
 
 	virtual void Pickup_Implementation(AAPlayerCharacter* Player) override;
 
@@ -71,6 +71,7 @@ protected:
 
 	/** 파생 재료 클래스가 원본과 썰린 메시를 생성자에서 지정할 때 사용합니다. */
 	void SetIngredientMeshes(UStaticMesh* RawMesh, UStaticMesh* NewChoppedMesh);
+	void SetChoppingEnabled(bool bEnabled);
 
 	// 주문 시스템에서 구분할 재료 종류입니다.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ingredient")

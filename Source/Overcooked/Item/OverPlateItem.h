@@ -15,9 +15,10 @@ class OVERCOOKED_API AOverPlateItem : public AOverPickupItem
 public:
 	// 접시 메시와 음식을 부착할 기준점을 생성합니다.
 	AOverPlateItem();
-	// 들고 있는 재료 한 개를 빈 접시에 부착하고 성공 여부를 반환합니다.
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	// 들고 있는 재료를 접시에 추가하고 성공 여부를 반환합니다.
 	bool AddFood(AOverPickupItem* Ingredient);
-	// 접시에 담긴 음식 액터가 유효한지 확인합니다.
+	// 접시에 담긴 음식 액터가 하나 이상 유효한지 확인합니다.
 	bool HasFood() const;
 
 	// 접시에 담긴 재료를 주문 제출용 데이터로 만듭니다.
@@ -36,6 +37,12 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
+	UFUNCTION()
+	void OnRep_DisplayedRecipe();
+
+	void RefreshCompletedDishVisual();
+	UStaticMesh* GetCompletedDishMesh(EOCRecipeType Recipe) const;
+
     UPROPERTY(EditAnywhere, Category = "Plate", meta = (ClampMin = "0.0"))
     float SurfaceTracePadding = 10.0f;
 
@@ -52,7 +59,25 @@ private:
 	UPROPERTY()
 	TObjectPtr<USceneComponent> FoodPoint;
 
-	// 접시에 담긴 음식 한 개를 보관합니다.
+	UPROPERTY(VisibleAnywhere, Category = "Plate")
+	TObjectPtr<UStaticMeshComponent> CompletedDishMesh;
+
 	UPROPERTY()
-	TObjectPtr<AOverPickupItem> Food;
+	TObjectPtr<UStaticMesh> ShrimpNigiriMesh;
+
+	UPROPERTY()
+	TObjectPtr<UStaticMesh> OctopusNigiriMesh;
+
+	UPROPERTY()
+	TObjectPtr<UStaticMesh> SalmonNigiriMesh;
+
+	UPROPERTY(ReplicatedUsing = OnRep_DisplayedRecipe)
+	EOCRecipeType DisplayedRecipe = EOCRecipeType::None;
+
+	UPROPERTY(EditAnywhere, Category = "Plate", meta = (ClampMin = "1", ClampMax = "6"))
+	int32 MaximumFoodCount = 4;
+
+	// 접시에 담긴 음식들을 보관합니다.
+	UPROPERTY()
+	TArray<TObjectPtr<AOverPickupItem>> Foods;
 };

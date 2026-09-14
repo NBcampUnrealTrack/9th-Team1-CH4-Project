@@ -3,7 +3,10 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
+#include "Net/UnrealNetwork.h"
+#include "UObject/ConstructorHelpers.h"
 #include "OverKitchenSettings.h"
+#include "../Core/OCRecipeLibrary.h"
 #include "../APlayerCharacter.h"
 #include "../ItemHolderComponent.h"
 
@@ -13,14 +16,39 @@ AOverPlateItem::AOverPlateItem()
 	ConfigureAsPlate(nullptr);
 	FoodPoint = CreateDefaultSubobject<USceneComponent>(TEXT("FoodPoint"));
 	FoodPoint->SetupAttachment(GetRootComponent());
+	CompletedDishMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CompletedDishMesh"));
+	CompletedDishMesh->SetupAttachment(FoodPoint);
+	CompletedDishMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CompletedDishMesh->SetVisibility(false);
+
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> ShrimpNigiri(
+		TEXT("/Game/External/Quaternius/SushiRestaurant/Food/Food_EbiNigiri.Food_EbiNigiri"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> OctopusNigiri(
+		TEXT("/Game/External/Quaternius/SushiRestaurant/Food/Food_OctopusNigiri.Food_OctopusNigiri"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> SalmonNigiri(
+		TEXT("/Game/External/Quaternius/SushiRestaurant/Food/Food_SalmonNigiri.Food_SalmonNigiri"));
+	ShrimpNigiriMesh = ShrimpNigiri.Object;
+	OctopusNigiriMesh = OctopusNigiri.Object;
+	SalmonNigiriMesh = SalmonNigiri.Object;
+}
+
+void AOverPlateItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AOverPlateItem, DisplayedRecipe);
 }
 
 // 들고 있는 재료 한 개를 빈 접시에 부착하고 성공 여부를 반환합니다.
 bool AOverPlateItem::AddFood(AOverPickupItem* Ingredient)
 {
-	// 내려놓은 빈 접시에만 재료 한 개를 담습니다. 접시 위에 접시는 놓지 않습니다.
-	if (!CanBePickedUp() || HasFood() || !IsValid(Ingredient) || Ingredient->IsA<AOverPlateItem>()
-		|| !Ingredient->CanBePlacedOnCuttingTable())
+	if (!CanBePickedUp() || Foods.Num() >= MaximumFoodCount || !IsValid(Ingredient) || Ingredient->IsA<AOverPlateItem>())
+	{
+		return false;
+	}
+
+	FOCPreparedIngredient PreparedIngredient;
+	if (!Ingredient->BuildPreparedIngredient(PreparedIngredient)
+		|| (Ingredient->CanBePlacedOnCuttingTable() && !Ingredient->IsChopped()))
 	{
 		return false;
 	}
@@ -43,8 +71,64 @@ bool AOverPlateItem::AddFood(AOverPickupItem* Ingredient)
 	{
 		return false;
 	}
-	Food = Ingredient;
+	const int32 FoodIndex = Foods.Num();
+	const FVector FoodOffset = FoodIndex == 0
+		? FVector(-12.0f, 0.0f, 0.0f)
+		: FoodIndex == 1
+			? FVector(12.0f, 0.0f, 0.0f)
+			: FoodIndex == 2
+				? FVector(0.0f, 12.0f, 4.0f)
+				: FVector(0.0f, -12.0f, 4.0f);
+	Ingredient->AddActorLocalOffset(FoodOffset);
+	Foods.Add(Ingredient);
+	RefreshCompletedDishVisual();
 	return true;
+}
+
+void AOverPlateItem::RefreshCompletedDishVisual()
+{
+	FOCDishContents Dish;
+	const EOCRecipeType Recipe = BuildDishContents(Dish)
+		? UOCRecipeLibrary::FindMatchingRecipe(Dish)
+		: EOCRecipeType::None;
+	DisplayedRecipe = GetCompletedDishMesh(Recipe) ? Recipe : EOCRecipeType::None;
+	OnRep_DisplayedRecipe();
+	ForceNetUpdate();
+}
+
+void AOverPlateItem::OnRep_DisplayedRecipe()
+{
+	if (!CompletedDishMesh)
+	{
+		return;
+	}
+
+	UStaticMesh* DishMesh = GetCompletedDishMesh(DisplayedRecipe);
+	CompletedDishMesh->SetStaticMesh(DishMesh);
+	CompletedDishMesh->SetVisibility(DishMesh != nullptr, true);
+
+	for (AOverPickupItem* Food : Foods)
+	{
+		if (IsValid(Food))
+		{
+			Food->SetActorHiddenInGame(DishMesh != nullptr);
+		}
+	}
+}
+
+UStaticMesh* AOverPlateItem::GetCompletedDishMesh(const EOCRecipeType Recipe) const
+{
+	switch (Recipe)
+	{
+	case EOCRecipeType::ShrimpSushi:
+		return ShrimpNigiriMesh;
+	case EOCRecipeType::OctopusSushi:
+		return OctopusNigiriMesh;
+	case EOCRecipeType::SalmonSushi:
+		return SalmonNigiriMesh;
+	default:
+		return nullptr;
+	}
 }
 
 // 탁자 위 접시는 캐릭터에 가까운 탁자 경계를 거리 판정 위치로 사용합니다.
@@ -58,9 +142,12 @@ FVector AOverPlateItem::GetPickupReachLocation(const FVector& CharacterLocation)
 	const FBox PlateBounds = PlateMesh->Bounds.GetBox();
 	const FVector PlateBottom(PlateBounds.GetCenter().X, PlateBounds.GetCenter().Y, PlateBounds.Min.Z);
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(PlateSupport), true, this);
-	if (IsValid(Food))
+	for (const AOverPickupItem* Food : Foods)
 	{
-		Params.AddIgnoredActor(Food);
+		if (IsValid(Food))
+		{
+			Params.AddIgnoredActor(Food);
+		}
 	}
 	FHitResult Hit;
 	// 접시 바로 아래의 탁자를 찾습니다. 바닥에 내려놓은 접시는 기존 거리 판정을 사용합니다.
@@ -83,44 +170,57 @@ FVector AOverPlateItem::GetPickupReachLocation(const FVector& CharacterLocation)
 // 접시에 담긴 음식 액터가 유효한지 확인합니다.
 bool AOverPlateItem::HasFood() const
 {
-	return IsValid(Food);
+	for (const AOverPickupItem* Food : Foods)
+	{
+		if (IsValid(Food))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 bool AOverPlateItem::BuildDishContents(FOCDishContents& OutDish) const
 {
 	OutDish.Ingredients.Reset();
 
-	if (!IsValid(Food))
+	for (const AOverPickupItem* Food : Foods)
 	{
-		return false;
+		if (!IsValid(Food))
+		{
+			continue;
+		}
+
+		FOCPreparedIngredient PreparedIngredient;
+		if (!Food->BuildPreparedIngredient(PreparedIngredient))
+		{
+			return false;
+		}
+
+		OutDish.Ingredients.Add(PreparedIngredient);
 	}
-
-	FOCPreparedIngredient PreparedIngredient;
-
-	if (!Food->BuildPreparedIngredient(PreparedIngredient))
-	{
-		return false;
-	}
-
-	OutDish.Ingredients.Add(PreparedIngredient);
-	return true;
+	return !OutDish.Ingredients.IsEmpty();
 }
 
 // 종료 시 부착된 음식이나 서빙 접시 등 관련 자원을 정리합니다.
 void AOverPlateItem::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	// 접시가 제거될 때 부착된 음식도 함께 제거합니다.
-	if (IsValid(Food))
+	for (AOverPickupItem* Food : Foods)
 	{
-		Food->Destroy();
+		if (IsValid(Food))
+		{
+			Food->Destroy();
+		}
 	}
+	Foods.Reset();
 	// 종료 시 부착된 음식이나 서빙 접시 등 관련 자원을 정리합니다.
 	Super::EndPlay(EndPlayReason);
 }
 
 void AOverPlateItem::Interact_Implementation(AAPlayerCharacter* Player)
 {
-	if (!HasAuthority() || !Player || HasFood())
+	if (!HasAuthority() || !Player || Foods.Num() >= MaximumFoodCount)
 	{
 		return;
 	}
@@ -136,8 +236,7 @@ void AOverPlateItem::Interact_Implementation(AAPlayerCharacter* Player)
 	AOverPickupItem* Ingredient =
 		Cast<AOverPickupItem>(Holder->GetHeldObject());
 
-	// 손에 든 썰기 완료 재료만 접시에 담습니다.
-	if (!Ingredient || !Ingredient->IsChopped())
+	if (!Ingredient)
 	{
 		return;
 	}

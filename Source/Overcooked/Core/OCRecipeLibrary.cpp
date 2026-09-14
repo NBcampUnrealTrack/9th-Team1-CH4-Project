@@ -32,7 +32,7 @@ FOCRecipeDefinition UOCRecipeLibrary::GetRecipeDefinition(const EOCRecipeType Re
 		break;
 
 	case EOCRecipeType::TomatoSalad:
-		Definition.DisplayName = NSLOCTEXT("OCRecipes", "TomatoSalad", "토마토 샐러드");
+		Definition.DisplayName = NSLOCTEXT("OCRecipes", "TomatoSalad", "양상추 토마토 샐러드");
 		Definition.IngredientSummary = NSLOCTEXT("OCRecipes", "TomatoSaladIngredients", "썬 양상추 + 썬 토마토");
 		Definition.Requirements = {
 			MakeRequirement(EOCIngredientType::Lettuce, EOCIngredientState::Chopped),
@@ -42,12 +42,12 @@ FOCRecipeDefinition UOCRecipeLibrary::GetRecipeDefinition(const EOCRecipeType Re
 		break;
 
 	case EOCRecipeType::CucumberTomatoCabbageSalad:
-		Definition.DisplayName = NSLOCTEXT("OCRecipes", "CucumberTomatoCabbageSalad", "오이 샐러드");
-		Definition.IngredientSummary = NSLOCTEXT("OCRecipes", "CucumberTomatoCabbageSaladIngredients", "썬 오이 + 썬 토마토 + 썬 양배추");
+		Definition.DisplayName = NSLOCTEXT("OCRecipes", "CucumberTomatoCabbageSalad", "양상추 토마토 오이 샐러드");
+		Definition.IngredientSummary = NSLOCTEXT("OCRecipes", "CucumberTomatoCabbageSaladIngredients", "썬 양상추 + 썬 토마토 + 썬 오이");
 		Definition.Requirements = {
+			MakeRequirement(EOCIngredientType::Lettuce, EOCIngredientState::Chopped),
 			MakeRequirement(EOCIngredientType::Cucumber, EOCIngredientState::Chopped),
-			MakeRequirement(EOCIngredientType::Tomato, EOCIngredientState::Chopped),
-			MakeRequirement(EOCIngredientType::Cabbage, EOCIngredientState::Chopped)
+			MakeRequirement(EOCIngredientType::Tomato, EOCIngredientState::Chopped)
 		};
 		Definition.BaseScore = 40;
 		break;
@@ -76,7 +76,7 @@ FOCRecipeDefinition UOCRecipeLibrary::GetRecipeDefinition(const EOCRecipeType Re
 		Definition.DisplayName = NSLOCTEXT("OCRecipes", "SalmonSushi", "연어 초밥");
 		Definition.IngredientSummary = NSLOCTEXT("OCRecipes", "SalmonSushiIngredients", "연어 필렛 + 밥");
 		Definition.Requirements = {
-			MakeRequirement(EOCIngredientType::SalmonFillet, EOCIngredientState::Whole),
+			MakeRequirement(EOCIngredientType::SalmonFillet, EOCIngredientState::Chopped),
 			MakeRequirement(EOCIngredientType::Rice, EOCIngredientState::Cooked)
 		};
 		Definition.BaseScore = 40;
@@ -97,7 +97,7 @@ FOCRecipeDefinition UOCRecipeLibrary::GetRecipeDefinition(const EOCRecipeType Re
 		Definition.DisplayName = NSLOCTEXT("OCRecipes", "SalmonRollSushi", "연어 롤 초밥");
 		Definition.IngredientSummary = NSLOCTEXT("OCRecipes", "SalmonRollSushiIngredients", "연어 필렛 + 밥 + 김");
 		Definition.Requirements = {
-			MakeRequirement(EOCIngredientType::SalmonFillet, EOCIngredientState::Whole),
+			MakeRequirement(EOCIngredientType::SalmonFillet, EOCIngredientState::Chopped),
 			MakeRequirement(EOCIngredientType::Rice, EOCIngredientState::Cooked),
 			MakeRequirement(EOCIngredientType::Seaweed, EOCIngredientState::Whole)
 		};

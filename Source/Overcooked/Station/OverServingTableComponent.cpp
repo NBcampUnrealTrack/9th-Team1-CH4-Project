@@ -65,7 +65,7 @@ bool UOverServingTableComponent::TryServeHeldPlate(AAPlayerCharacter* Player)
 		EOCRecipeType::None;
 
 	// 현재 주문과 일치하는 음식만 서빙받습니다.
-	if (!GameMode->SubmitDish(Dish, MatchedRecipe))
+	if (!GameMode->CanSubmitDish(Dish, MatchedRecipe))
 	{
 		UE_LOG(
 			LogTemp,
@@ -81,7 +81,12 @@ bool UOverServingTableComponent::TryServeHeldPlate(AAPlayerCharacter* Player)
 		return false;
 	}
 
-	return Holder->CompleteTransfer(HeldPlate);
+	if (!Holder->CompleteTransfer(HeldPlate))
+	{
+		return false;
+	}
+
+	return GameMode->SubmitDish(Dish, MatchedRecipe);
 }
 
 // 게임 시작 시 필요한 배치와 구성 요소를 준비합니다.
