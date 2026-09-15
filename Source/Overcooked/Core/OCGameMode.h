@@ -118,6 +118,7 @@ private:
 	void ShowResults();
 	void UpdateCountdown();
 	void UpdateRoundTimer();
+	void ConfigureRulesForCurrentMap(); //게임모드.주문
 	void ScheduleNextOrder();
 	void GenerateOrder();
 	void AwardOrderScore(AOCGameState& State, const FOCActiveOrder& Order, bool bCompletedInOrder);
