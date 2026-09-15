@@ -14,6 +14,7 @@ class UInputAction;
 class UInteractionComponent;
 class UItemHolderComponent;
 class UWidgetComponent;
+class UStaticMeshComponent;
 
 UCLASS()
 class OVERCOOKED_API AAPlayerCharacter : public ACharacter
@@ -24,6 +25,21 @@ public:
     AAPlayerCharacter();
 
     virtual void BeginPlay() override;
+
+    // 애니메이션 블루프린트가 현재 썰기 상태를 조회합니다.
+    UFUNCTION(BlueprintPure, Category = "Interaction|Chopping")
+    bool IsChopping() const;
+
+    // 서버의 도마 상호작용만 썰기 상태를 변경합니다.
+    void SetIsChopping(bool bNewIsChopping);
+
+    // AnimBP의 썰기 시작 Notify에서 호출해 칼을 표시합니다.
+    UFUNCTION(BlueprintCallable, Category = "Interaction|Chopping")
+    void ShowChoppingKnife();
+
+    // AnimBP의 썰기 종료 Notify에서 호출해 칼을 숨깁니다.
+    UFUNCTION(BlueprintCallable, Category = "Interaction|Chopping")
+    void HideChoppingKnife();
     
     UFUNCTION(BlueprintCallable, Category = "Overcooked|UI")
     void ShowInvalidOrderPopup();
@@ -32,6 +48,10 @@ protected:
     virtual void SetupPlayerInputComponent(
         class UInputComponent* PlayerInputComponent
     ) override;
+
+    virtual void GetLifetimeReplicatedProps(
+        TArray<FLifetimeProperty>& OutLifetimeProps
+    ) const override;
 
 private:
 
@@ -102,8 +122,27 @@ private:
         meta = (AllowPrivateAccess = "true")
     )
     TObjectPtr<UItemHolderComponent> ItemHolderComponent;
+
+    // 썰기 중에만 KnifeSocket에 표시하는 장식용 칼 메시입니다.
+    UPROPERTY(
+        VisibleAnywhere,
+        BlueprintReadOnly,
+        Category = "Interaction|Chopping",
+        meta = (AllowPrivateAccess = "true")
+    )
+    TObjectPtr<UStaticMeshComponent> ChoppingKnifeMesh;
     
 
     UPROPERTY(EditDefaultsOnly, Category = "Input")
     TObjectPtr<UInputAction> PickupDropAction;
+
+    // 서버가 결정한 썰기 상태를 모든 클라이언트의 AnimBP에 전달합니다.
+    UPROPERTY(
+        Replicated,
+        VisibleInstanceOnly,
+        BlueprintReadOnly,
+        Category = "Interaction|Chopping",
+        meta = (AllowPrivateAccess = "true")
+    )
+    bool bIsChopping = false;
 };
