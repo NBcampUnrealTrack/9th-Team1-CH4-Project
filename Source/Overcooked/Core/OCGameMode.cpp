@@ -33,6 +33,15 @@ AOCGameMode::AOCGameMode()
 	PandaPawnClass = PandaPawn.Class;
 }
 
+void AOCGameMode::InitGame(
+	const FString& MapName,
+	const FString& Options,
+	FString& ErrorMessage)
+{
+	Super::InitGame(MapName, Options, ErrorMessage);
+	ExpectedPlayerCount = UGameplayStatics::GetIntOption(Options, TEXT("ExpectedPlayers"), 0);
+}
+
 UClass* AOCGameMode::GetDefaultPawnClassForController_Implementation(AController* InController)
 {
 	const int32 PlayerSlotIndex = ResolvePlayerSlotIndex(InController);
@@ -91,6 +100,17 @@ void AOCGameMode::PostLogin(APlayerController* NewPlayer)
 	RefreshParticipatingPlayerCount();
 	RefreshPlayerSlots();
 	TryAutoStartRound();
+
+	if (ExpectedPlayerCount == 1 && GetNumPlayers() == 1)
+	{
+		TWeakObjectPtr<APlayerController> WeakPlayer = NewPlayer;
+		GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(
+			this,
+			[this, WeakPlayer]()
+			{
+				SetupSinglePlayerCharacters(WeakPlayer.Get());
+			}));
+	}
 
 }
 
@@ -386,7 +406,8 @@ bool AOCGameMode::HasEnoughPlayersToStart()
 		return false;
 	}
 
-	return GetNumPlayers() >= MinimumPlayersToStart;
+	return GetNumPlayers() >= MinimumPlayersToStart
+		|| (ExpectedPlayerCount == 1 && IsValid(SinglePlayerCompanion));
 }
 
 void AOCGameMode::TryAutoStartRound()
@@ -406,7 +427,54 @@ void AOCGameMode::RefreshParticipatingPlayerCount()
 	AOCGameState* State = GetOCGameState();
 	if (IsValid(State))
 	{
-		State->SetParticipatingPlayerCount(GetNumPlayers());
+		const int32 ParticipatingCount = ExpectedPlayerCount == 1 && IsValid(SinglePlayerCompanion)
+			? 2
+			: GetNumPlayers();
+		State->SetParticipatingPlayerCount(ParticipatingCount);
+	}
+}
+
+void AOCGameMode::SetupSinglePlayerCharacters(APlayerController* PlayerController)
+{
+	if (!HasAuthority()
+		|| ExpectedPlayerCount != 1
+		|| !IsValid(PlayerController)
+		|| !IsValid(PlayerController->GetPawn()))
+	{
+		return;
+	}
+
+	AOCPlayerController* OCPlayerController = Cast<AOCPlayerController>(PlayerController);
+	if (!IsValid(OCPlayerController))
+	{
+		return;
+	}
+
+	if (!IsValid(SinglePlayerCompanion))
+	{
+		FTransform SpawnTransform = PlayerController->GetPawn()->GetActorTransform();
+		for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It)
+		{
+			if (It->PlayerStartTag == MakePlayerStartTag(1))
+			{
+				SpawnTransform = It->GetActorTransform();
+				break;
+			}
+		}
+
+		FActorSpawnParameters SpawnParameters;
+		SpawnParameters.Owner = PlayerController;
+		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		SinglePlayerCompanion = GetWorld()->SpawnActor<APawn>(PandaPawnClass, SpawnTransform, SpawnParameters);
+	}
+
+	if (IsValid(SinglePlayerCompanion))
+	{
+		OCPlayerController->ConfigureSinglePlayerCharacters(
+			PlayerController->GetPawn(),
+			SinglePlayerCompanion);
+		RefreshParticipatingPlayerCount();
+		TryAutoStartRound();
 	}
 }
 

@@ -21,6 +21,8 @@ public:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void PlayerTick(float DeltaTime) override;
+
+	void ConfigureSinglePlayerCharacters(APawn* PrimaryCharacter, APawn* SecondaryCharacter);
 	
 	UFUNCTION(BlueprintCallable, Category = "Overcooked|Game")
 	void StartGame();
@@ -64,6 +66,9 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerDebugCompleteOrder(int32 OrderIndex);
 
+	UFUNCTION(Server, Reliable)
+	void ServerSwitchSinglePlayerCharacter();
+
 	UFUNCTION()
 	void HandleScoreChanged(int32 NewScore, int32 ScoreDelta);
 	UFUNCTION()
@@ -87,4 +92,10 @@ private:
 	void ApplyMovementInput(const FVector2D& MovementInput);
 
 	FTimerHandle SharedCameraRetryTimerHandle;
+
+	UPROPERTY()
+	TObjectPtr<APawn> SinglePlayerPrimaryCharacter;
+
+	UPROPERTY()
+	TObjectPtr<APawn> SinglePlayerSecondaryCharacter;
 };

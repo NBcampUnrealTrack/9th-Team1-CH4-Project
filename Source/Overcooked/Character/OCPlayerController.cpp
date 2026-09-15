@@ -272,6 +272,11 @@ void AOCPlayerController::PlayerTick(const float DeltaTime)
 
 	ApplyMovementInput(ReadMovementInput());
 
+	if (WasInputKeyJustPressed(EKeys::Tab))
+	{
+		ServerSwitchSinglePlayerCharacter();
+	}
+
 	int32 DebugOrderIndex = INDEX_NONE;
 	if (WasInputKeyJustPressed(EKeys::One))
 	{
@@ -302,6 +307,32 @@ void AOCPlayerController::PlayerTick(const float DeltaTime)
 	{
 		ServerDebugCompleteOrder(DebugOrderIndex);
 	}
+}
+
+void AOCPlayerController::ConfigureSinglePlayerCharacters(
+	APawn* PrimaryCharacter,
+	APawn* SecondaryCharacter)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	SinglePlayerPrimaryCharacter = PrimaryCharacter;
+	SinglePlayerSecondaryCharacter = SecondaryCharacter;
+}
+
+void AOCPlayerController::ServerSwitchSinglePlayerCharacter_Implementation()
+{
+	if (!IsValid(SinglePlayerPrimaryCharacter) || !IsValid(SinglePlayerSecondaryCharacter))
+	{
+		return;
+	}
+
+	APawn* NextCharacter = GetPawn() == SinglePlayerPrimaryCharacter
+		? SinglePlayerSecondaryCharacter
+		: SinglePlayerPrimaryCharacter;
+	Possess(NextCharacter);
 }
 
 void AOCPlayerController::ServerDebugCompleteOrder_Implementation(const int32 OrderIndex)

@@ -16,6 +16,7 @@ class OVERCOOKED_API AOCGameMode : public AGameModeBase
 public:
 	AOCGameMode();
 
+	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 	virtual void StartPlay() override;
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	virtual void Logout(AController* Exiting) override;
@@ -118,6 +119,7 @@ private:
 	void TryAutoStartRound();
 	void RefreshParticipatingPlayerCount();
 	void RefreshPlayerSlots();
+	void SetupSinglePlayerCharacters(APlayerController* PlayerController);
 	void EnsureSharedCamera();
 	void ApplySharedCamera(APlayerController* PlayerController) const;
 	void ApplySharedCameraToAllPlayers() const;
@@ -140,6 +142,10 @@ private:
 	FTimerHandle ResultsTimerHandle;
 	FTimerHandle OrderTimerHandle;
 	int32 NextOrderId = 0;
+	int32 ExpectedPlayerCount = 0;
+
+	UPROPERTY(Transient)
+	TObjectPtr<APawn> SinglePlayerCompanion;
 
 	UPROPERTY(Transient)
 	TObjectPtr<AOCSharedCameraActor> SharedCameraActor;
