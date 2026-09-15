@@ -13,6 +13,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/PlayerStart.h"
 #include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogOCGameMode, Log, All);
@@ -30,11 +31,35 @@ void AOCGameMode::StartPlay()
 {
 	Super::StartPlay();
 
+	ConfigureRulesForCurrentMap();
 	EnsureSharedCamera();
 	ApplySharedCameraToAllPlayers();
 	RefreshParticipatingPlayerCount();
 	RefreshPlayerSlots();
 	TryAutoStartRound();
+}
+
+void AOCGameMode::ConfigureRulesForCurrentMap()
+{
+	const FString LevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+
+	if (LevelName.Equals(TEXT("tutorial"), ESearchCase::IgnoreCase))
+	{
+		bUseSingleLettuceTestOrder = false;
+		RecipeStage = EOCRecipeStage::Tutorial;
+	}
+	else if (LevelName.Equals(TEXT("DevMap"), ESearchCase::IgnoreCase)
+		|| LevelName.Equals(TEXT("Leveone"), ESearchCase::IgnoreCase))
+	{
+		bUseSingleLettuceTestOrder = false;
+		RecipeStage = EOCRecipeStage::Stage1;
+	}
+	else if (LevelName.Equals(TEXT("Levetwo"), ESearchCase::IgnoreCase)
+		|| LevelName.Equals(TEXT("Levethree"), ESearchCase::IgnoreCase))
+	{
+		bUseSingleLettuceTestOrder = false;
+		RecipeStage = EOCRecipeStage::Stage2;
+	}
 }
 
 void AOCGameMode::PostLogin(APlayerController* NewPlayer)

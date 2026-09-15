@@ -82,6 +82,7 @@ private:
 	
 	bool TryUseSharedCamera();
 	void RefreshSharedCamera();
+	void EnsureDefaultOrderCardTextures(); //UI.주문
 	FVector2D ReadMovementInput() const;
 	void ApplyMovementInput(const FVector2D& MovementInput);
 
