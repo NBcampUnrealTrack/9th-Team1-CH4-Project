@@ -3,17 +3,20 @@
 #include "OverCuttingTable.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "Engine/CollisionProfile.h"
 #include "Engine/StaticMesh.h"
 #include "../Item/OverKitchenSettings.h"
 #include "../Item/OverPickupItem.h"
 #include "../Character/APlayerCharacter.h"
 #include "../Item/ItemHolderComponent.h"
+#include "Net/UnrealNetwork.h"
 
 // 작업대 메시와 재료 한 개를 올려놓을 부착 지점을 생성합니다.
 AOverCuttingTable::AOverCuttingTable()
 {
 	PrimaryActorTick.bCanEverTick = false;
+	bReplicates = true;
 
 	TableMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TableMesh"));
 	SetRootComponent(TableMesh);
@@ -21,6 +24,15 @@ AOverCuttingTable::AOverCuttingTable()
 
 	IngredientPoint = CreateDefaultSubobject<USceneComponent>(TEXT("IngredientPoint"));
 	IngredientPoint->SetupAttachment(TableMesh);
+
+	ChopTimeText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("ChopTimeText"));
+	ChopTimeText->SetupAttachment(TableMesh);
+	ChopTimeText->SetHorizontalAlignment(EHorizTextAligment::EHTA_Center);
+	ChopTimeText->SetVerticalAlignment(EVerticalTextAligment::EVRTA_TextCenter);
+	ChopTimeText->SetWorldSize(40.0f);
+	ChopTimeText->SetTextRenderColor(FColor::Yellow);
+	ChopTimeText->SetRelativeRotation(FRotator(60.0f, 0.0f, 0.0f));
+	ChopTimeText->SetVisibility(false, true);
 
 }
 
@@ -42,6 +54,14 @@ void AOverCuttingTable::OnConstruction(const FTransform& Transform)
 		(LocalMin.Y + LocalMax.Y) * 0.5f,
 		LocalMax.Z);
 	IngredientPoint->SetRelativeLocation(TopCenter + IngredientPointOffset);
+	ChopTimeText->SetRelativeLocation(TopCenter + IngredientPointOffset + FVector(0.0f, 0.0f, 80.0f));
+}
+
+void AOverCuttingTable::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AOverCuttingTable, ReplicatedRemainingChopSeconds);
+	DOREPLIFETIME(AOverCuttingTable, bShowChopDebugTime);
 }
 
 void AOverCuttingTable::Interact_Implementation(AAPlayerCharacter* Player)
@@ -105,6 +125,8 @@ void AOverCuttingTable::Interact_Implementation(AAPlayerCharacter* Player)
 	}
 
 	ChoppingPlayer = Player;
+	bShowChopDebugTime = true;
+	UpdateChopDebugTime();
 
 	const float SafeTickInterval =
 		FMath::Max(ChopTickInterval, 0.01f);
@@ -124,14 +146,7 @@ void AOverCuttingTable::StopInteract_Implementation(
 	AAPlayerCharacter* Player
 )
 {
-	if (!HasAuthority() || ChoppingPlayer.Get() != Player)
-	{
-		return;
-	}
-
-	GetWorldTimerManager().ClearTimer(ChoppingTimerHandle);
-	Player->SetIsChopping(false);
-	ChoppingPlayer.Reset();
+	// F키를 뗐을 때는 중단하지 않습니다. 이동하거나 완료될 때 중단합니다.
 }
 
 void AOverCuttingTable::AdvanceChoppingTick()
@@ -142,12 +157,13 @@ void AOverCuttingTable::AdvanceChoppingTick()
 		|| !Player
 		|| !CanChopIngredient())
 	{
-		GetWorldTimerManager().ClearTimer(ChoppingTimerHandle);
-		if (Player)
-		{
-			Player->SetIsChopping(false);
-		}
-		ChoppingPlayer.Reset();
+		PauseChopping();
+		return;
+	}
+
+	if (Player->GetVelocity().SizeSquared2D() > FMath::Square(5.0f))
+	{
+		PauseChopping();
 		return;
 	}
 
@@ -156,10 +172,54 @@ void AOverCuttingTable::AdvanceChoppingTick()
 
 	if (AdvanceChopping(SafeTickInterval))
 	{
-		GetWorldTimerManager().ClearTimer(ChoppingTimerHandle);
-		Player->SetIsChopping(false);
-		ChoppingPlayer.Reset();
+		UpdateChopDebugTime();
+		PauseChopping(true);
+		return;
 	}
+
+	UpdateChopDebugTime();
+}
+
+void AOverCuttingTable::PauseChopping(const bool bHideDebugTime)
+{
+	GetWorldTimerManager().ClearTimer(ChoppingTimerHandle);
+
+	if (AAPlayerCharacter* Player = ChoppingPlayer.Get())
+	{
+		Player->SetIsChopping(false);
+	}
+
+	ChoppingPlayer.Reset();
+
+	if (bHideDebugTime)
+	{
+		bShowChopDebugTime = false;
+	}
+
+	OnRep_ChopDebugTime();
+	ForceNetUpdate();
+}
+
+void AOverCuttingTable::UpdateChopDebugTime()
+{
+	ReplicatedRemainingChopSeconds = IsValid(PlacedIngredient)
+		? PlacedIngredient->GetRemainingChopSeconds()
+		: 0.0f;
+	OnRep_ChopDebugTime();
+	ForceNetUpdate();
+}
+
+void AOverCuttingTable::OnRep_ChopDebugTime()
+{
+	if (!ChopTimeText)
+	{
+		return;
+	}
+
+	ChopTimeText->SetText(FText::FromString(FString::Printf(
+		TEXT("%.1f"),
+		ReplicatedRemainingChopSeconds)));
+	ChopTimeText->SetVisibility(bShowChopDebugTime, true);
 }
 
 // 작업대가 비어 있고 재료를 배치할 수 있을 때 부착 후 보관합니다.
@@ -176,6 +236,8 @@ bool AOverCuttingTable::PlaceIngredient(AOverPickupItem* Ingredient)
 	}
 
 	PlacedIngredient = Ingredient;
+	bShowChopDebugTime = false;
+	UpdateChopDebugTime();
 	return true;
 }
 
@@ -195,6 +257,8 @@ AOverPickupItem* AOverCuttingTable::TakeIngredient(USceneComponent* HoldPoint, A
 	}
 
 	PlacedIngredient = nullptr;
+	bShowChopDebugTime = false;
+	UpdateChopDebugTime();
 	return Ingredient;
 }
 

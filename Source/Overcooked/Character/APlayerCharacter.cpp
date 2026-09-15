@@ -2,10 +2,13 @@
 
 
 #include "APlayerCharacter.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimSequence.h"
 #include "Camera/CameraComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/SkeletalMesh.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "../Interaction/InteractionComponent.h"
@@ -15,6 +18,7 @@
 #include "Net/UnrealNetwork.h"
 
 #include "InputAction.h"
+#include "InputCoreTypes.h"
 #include "UObject/ConstructorHelpers.h"
 
 
@@ -97,6 +101,60 @@ AAPlayerCharacter::AAPlayerCharacter()
         );
     }
 
+    static ConstructorHelpers::FObjectFinder<UAnimSequence>
+        ChefCarryAnimationAsset(
+            TEXT("/Game/External/Quaternius/UltimateAnimatedCharacters/Chefs/Animations/Chef_MaleCharacterArmature_Walk_Carry.Chef_MaleCharacterArmature_Walk_Carry")
+        );
+
+    if (ChefCarryAnimationAsset.Succeeded())
+    {
+        ChefCarryAnimation = ChefCarryAnimationAsset.Object;
+    }
+
+    static ConstructorHelpers::FObjectFinder<UAnimSequence>
+        PandaCarryAnimationAsset(
+            TEXT("/Game/External/Quaternius/SushiRestaurant/Characters/Animations/PandaCharacterArmature_Walk_Holding.PandaCharacterArmature_Walk_Holding")
+        );
+
+    if (PandaCarryAnimationAsset.Succeeded())
+    {
+        PandaCarryAnimation = PandaCarryAnimationAsset.Object;
+    }
+
+    static ConstructorHelpers::FObjectFinder<UAnimSequence>
+        PandaIdleCarryAnimationAsset(
+            TEXT("/Game/External/Quaternius/SushiRestaurant/Characters/Animations/PandaCharacterArmature_Idle_Holding.PandaCharacterArmature_Idle_Holding")
+        );
+
+    if (PandaIdleCarryAnimationAsset.Succeeded())
+    {
+        PandaIdleCarryAnimation = PandaIdleCarryAnimationAsset.Object;
+    }
+
+    static ConstructorHelpers::FObjectFinder<UAnimSequence>
+        ChefRunAnimationAsset(
+            TEXT("/Game/External/Quaternius/UltimateAnimatedCharacters/Chefs/Animations/Chef_MaleCharacterArmature_Run.Chef_MaleCharacterArmature_Run")
+        );
+    ChefRunAnimation = ChefRunAnimationAsset.Object;
+
+    static ConstructorHelpers::FObjectFinder<UAnimSequence>
+        ChefRunCarryAnimationAsset(
+            TEXT("/Game/External/Quaternius/UltimateAnimatedCharacters/Chefs/Animations/Chef_MaleCharacterArmature_Run_Carry.Chef_MaleCharacterArmature_Run_Carry")
+        );
+    ChefRunCarryAnimation = ChefRunCarryAnimationAsset.Object;
+
+    static ConstructorHelpers::FObjectFinder<UAnimSequence>
+        PandaRunAnimationAsset(
+            TEXT("/Game/External/Quaternius/SushiRestaurant/Characters/Animations/PandaCharacterArmature_Run.PandaCharacterArmature_Run")
+        );
+    PandaRunAnimation = PandaRunAnimationAsset.Object;
+
+    static ConstructorHelpers::FObjectFinder<UAnimSequence>
+        PandaRunCarryAnimationAsset(
+            TEXT("/Game/External/Quaternius/SushiRestaurant/Characters/Animations/PandaCharacterArmature_Run_Holding.PandaCharacterArmature_Run_Holding")
+        );
+    PandaRunCarryAnimation = PandaRunCarryAnimationAsset.Object;
+
     InvalidOrderWidgetComponent =
     CreateDefaultSubobject<UWidgetComponent>(
         TEXT("InvalidOrderWidget")
@@ -132,6 +190,13 @@ AAPlayerCharacter::AAPlayerCharacter()
 void AAPlayerCharacter::BeginPlay()
 {
     Super::BeginPlay();
+
+    DefaultAnimInstanceClass = GetMesh()
+        ? GetMesh()->GetAnimClass()
+        : nullptr;
+    WalkingSpeed = GetCharacterMovement()
+        ? GetCharacterMovement()->MaxWalkSpeed
+        : 0.0f;
 
     if (APlayerController* PlayerController =
         Cast<APlayerController>(Controller))
@@ -194,6 +259,122 @@ void AAPlayerCharacter::GetLifetimeReplicatedProps(
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
     DOREPLIFETIME(AAPlayerCharacter, bIsChopping);
+    DOREPLIFETIME(AAPlayerCharacter, bIsCarryingItem);
+    DOREPLIFETIME(AAPlayerCharacter, bIsRunning);
+}
+
+void AAPlayerCharacter::Tick(const float DeltaSeconds)
+{
+    Super::Tick(DeltaSeconds);
+    ApplyCarryingAnimation();
+}
+
+void AAPlayerCharacter::SetIsCarryingItem(const bool bNewIsCarryingItem)
+{
+    if (!HasAuthority() || bIsCarryingItem == bNewIsCarryingItem)
+    {
+        return;
+    }
+
+    bIsCarryingItem = bNewIsCarryingItem;
+    ApplyCarryingAnimation();
+    ForceNetUpdate();
+}
+
+void AAPlayerCharacter::OnRep_IsCarryingItem()
+{
+    ApplyCarryingAnimation();
+}
+
+void AAPlayerCharacter::ApplyCarryingAnimation()
+{
+    USkeletalMeshComponent* CharacterMesh = GetMesh();
+    if (!CharacterMesh)
+    {
+        return;
+    }
+
+    const USkeleton* CharacterSkeleton = CharacterMesh->GetSkeletalMeshAsset()
+        ? CharacterMesh->GetSkeletalMeshAsset()->GetSkeleton()
+        : nullptr;
+    const bool bIsMoving = GetVelocity().SizeSquared2D() > FMath::Square(5.0f);
+    UAnimSequence* DesiredAnimation = nullptr;
+
+    if (bIsMoving
+        && bIsRunning
+        && bIsCarryingItem
+        && ChefRunCarryAnimation
+        && ChefRunCarryAnimation->GetSkeleton() == CharacterSkeleton)
+    {
+        DesiredAnimation = ChefRunCarryAnimation;
+    }
+    else if (bIsMoving
+        && bIsRunning
+        && bIsCarryingItem
+        && PandaRunCarryAnimation
+        && PandaRunCarryAnimation->GetSkeleton() == CharacterSkeleton)
+    {
+        DesiredAnimation = PandaRunCarryAnimation;
+    }
+    else if (bIsMoving
+        && bIsCarryingItem
+        && ChefCarryAnimation
+        && ChefCarryAnimation->GetSkeleton() == CharacterSkeleton)
+    {
+        DesiredAnimation = ChefCarryAnimation;
+    }
+    else if (bIsMoving
+        && bIsCarryingItem
+        && PandaCarryAnimation
+        && PandaCarryAnimation->GetSkeleton() == CharacterSkeleton)
+    {
+        DesiredAnimation = PandaCarryAnimation;
+    }
+    else if (!bIsMoving
+        && bIsCarryingItem
+        && PandaIdleCarryAnimation
+        && PandaIdleCarryAnimation->GetSkeleton() == CharacterSkeleton)
+    {
+        DesiredAnimation = PandaIdleCarryAnimation;
+    }
+    else if (!bIsMoving
+        && bIsCarryingItem
+        && ChefCarryAnimation
+        && ChefCarryAnimation->GetSkeleton() == CharacterSkeleton)
+    {
+        DesiredAnimation = ChefCarryAnimation;
+    }
+    else if (bIsMoving
+        && bIsRunning
+        && ChefRunAnimation
+        && ChefRunAnimation->GetSkeleton() == CharacterSkeleton)
+    {
+        DesiredAnimation = ChefRunAnimation;
+    }
+    else if (bIsMoving
+        && bIsRunning
+        && PandaRunAnimation
+        && PandaRunAnimation->GetSkeleton() == CharacterSkeleton)
+    {
+        DesiredAnimation = PandaRunAnimation;
+    }
+
+    if (DesiredAnimation)
+    {
+        if (ActiveOverrideAnimation != DesiredAnimation)
+        {
+            CharacterMesh->PlayAnimation(DesiredAnimation, true);
+            ActiveOverrideAnimation = DesiredAnimation;
+        }
+        return;
+    }
+
+    if (ActiveOverrideAnimation)
+    {
+        ActiveOverrideAnimation = nullptr;
+        CharacterMesh->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+        CharacterMesh->SetAnimInstanceClass(DefaultAnimInstanceClass);
+    }
 }
 
 
@@ -202,6 +383,11 @@ void AAPlayerCharacter::SetupPlayerInputComponent(
 )
 {
     Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+    PlayerInputComponent->BindKey(EKeys::LeftShift, IE_Pressed, this, &AAPlayerCharacter::StartRunning);
+    PlayerInputComponent->BindKey(EKeys::LeftShift, IE_Released, this, &AAPlayerCharacter::StopRunning);
+    PlayerInputComponent->BindKey(EKeys::RightShift, IE_Pressed, this, &AAPlayerCharacter::StartRunning);
+    PlayerInputComponent->BindKey(EKeys::RightShift, IE_Released, this, &AAPlayerCharacter::StopRunning);
 
     if (UEnhancedInputComponent* EnhancedInputComponent =
         Cast<UEnhancedInputComponent>(PlayerInputComponent))
@@ -221,26 +407,62 @@ void AAPlayerCharacter::SetupPlayerInputComponent(
         );
 
         EnhancedInputComponent->BindAction(
-            InteractAction,
-            ETriggerEvent::Completed,
-            this,
-            &AAPlayerCharacter::StopInteract
-        );
-
-        EnhancedInputComponent->BindAction(
-            InteractAction,
-            ETriggerEvent::Canceled,
-            this,
-            &AAPlayerCharacter::StopInteract
-        );
-
-        EnhancedInputComponent->BindAction(
             PickupDropAction,
             ETriggerEvent::Started,
             this,
             &AAPlayerCharacter::PickupOrDrop
         );
     }
+}
+
+void AAPlayerCharacter::StartRunning()
+{
+    SetRunning(true);
+}
+
+void AAPlayerCharacter::StopRunning()
+{
+    SetRunning(false);
+}
+
+void AAPlayerCharacter::SetRunning(const bool bNewIsRunning)
+{
+    bIsRunning = bNewIsRunning;
+
+    if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+    {
+        Movement->MaxWalkSpeed = bIsRunning
+            ? WalkingSpeed * RunningSpeedMultiplier
+            : WalkingSpeed;
+    }
+
+    ApplyCarryingAnimation();
+
+    if (!HasAuthority())
+    {
+        ServerSetRunning(bNewIsRunning);
+    }
+    else
+    {
+        ForceNetUpdate();
+    }
+}
+
+void AAPlayerCharacter::ServerSetRunning_Implementation(const bool bNewIsRunning)
+{
+    SetRunning(bNewIsRunning);
+}
+
+void AAPlayerCharacter::OnRep_IsRunning()
+{
+    if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+    {
+        Movement->MaxWalkSpeed = bIsRunning
+            ? WalkingSpeed * RunningSpeedMultiplier
+            : WalkingSpeed;
+    }
+
+    ApplyCarryingAnimation();
 }
 
 

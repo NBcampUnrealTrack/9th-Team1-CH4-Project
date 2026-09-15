@@ -329,6 +329,11 @@ bool AOverPickupItem::IsChopped() const
 	return IngredientState == EOverIngredientState::Chopped;
 }
 
+float AOverPickupItem::GetRemainingChopSeconds() const
+{
+	return FMath::Max(RequiredChopSeconds - ChopProgressSeconds, 0.0f);
+}
+
 bool AOverPickupItem::BuildPreparedIngredient(FOCPreparedIngredient& OutIngredient) const
 {
 	if (RecipeIngredientType == EOCIngredientType::None)
