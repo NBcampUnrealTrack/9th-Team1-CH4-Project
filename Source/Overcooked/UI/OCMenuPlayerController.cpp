@@ -1,6 +1,7 @@
 #include "OCMenuPlayerController.h"
 #include "OCMenuWidget.h"
 #include "../UI/OCMenuPlayerController.h"
+#include "../Core/OCMenuGameMode.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 
@@ -37,5 +38,13 @@ void AOCMenuPlayerController::ClientUpdatePlayerSlots_Implementation(
 	if (UOCMenuWidget* MenuWidget = FindMenuWidget())
 	{
 		MenuWidget->SetPlayer2Connected(PlayerCount >= 2);
+	}
+}
+void AOCMenuPlayerController::ServerRequestPlayerSlots_Implementation()
+{
+	if (AOCMenuGameMode* MenuGameMode =
+		GetWorld()->GetAuthGameMode<AOCMenuGameMode>())
+	{
+		MenuGameMode->UpdatePlayerSlots();
 	}
 }

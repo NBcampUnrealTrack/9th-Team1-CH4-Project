@@ -17,7 +17,9 @@ public:
 	
 	UFUNCTION(Client, Reliable)
 	void ClientUpdatePlayerSlots(int32 PlayerCount);
-
+	UFUNCTION(Server, Reliable)
+	void ServerRequestPlayerSlots();
+	
 private:
 	UOCMenuWidget* FindMenuWidget() const;
 };
