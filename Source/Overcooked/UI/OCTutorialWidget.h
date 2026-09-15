@@ -19,7 +19,8 @@ public:
 	// 스테이지마다 튜토리얼 이미지 교체
 	UFUNCTION(BlueprintCallable, Category = "Tutorial")
 	void SetTutorialImage(UTexture2D* NewTexture);
-
+	UFUNCTION(BlueprintCallable, Category = "Overcooked|Tutorial")
+	void HideTutorial();
 protected:
 	virtual void NativeConstruct() override;
 

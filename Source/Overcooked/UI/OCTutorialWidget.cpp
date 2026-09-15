@@ -1,5 +1,6 @@
 #include "OCTutorialWidget.h"
 
+#include "../Character//OCPlayerController.h"
 #include "Components/Image.h"
 #include "Engine/Texture2D.h"
 #include "GameFramework/PlayerController.h"
@@ -40,13 +41,24 @@ FReply UOCTutorialWidget::NativeOnKeyDown(
 	const FGeometry& InGeometry,
 	const FKeyEvent& InKeyEvent)
 {
-	UE_LOG(
-		LogTemp,
-		Warning,
+	UE_LOG(LogTemp, Warning,
 		TEXT("Tutorial Key Pressed: %s"),
-		*InKeyEvent.GetKey().ToString()
-	);
+		*InKeyEvent.GetKey().ToString());
 
+	if (AOCPlayerController* OCPC =
+		Cast<AOCPlayerController>(GetOwningPlayer()))
+	{
+		// 호스트만 게임 시작
+		if (OCPC->HasAuthority())
+		{
+			OCPC->ServerFinishTutorial();
+		}
+	}
+
+	return FReply::Handled();
+}
+void UOCTutorialWidget::HideTutorial()
+{
 	if (TutorialHide)
 	{
 		PlayAnimation(TutorialHide);
@@ -66,17 +78,10 @@ FReply UOCTutorialWidget::NativeOnKeyDown(
 				}
 			},
 			0.35f,
-			false
-		);
+			false);
 	}
 	else
 	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT("TutorialHide animation is NULL!")
-		);
+		SetVisibility(ESlateVisibility::Collapsed);
 	}
-
-	return FReply::Handled();
 }

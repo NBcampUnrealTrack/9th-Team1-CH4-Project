@@ -12,6 +12,8 @@
 #include "InputCoreTypes.h"
 #include "TimerManager.h"
 #include "../UI/OCResultWidget.h"
+#include "../UI/OCTutorialWidget.h"
+#include "TimerManager.h"
 
 AOCPlayerController::AOCPlayerController()
 {
@@ -39,6 +41,18 @@ void AOCPlayerController::BeginPlay()
 		if (HUDWidget)
 		{
 			HUDWidget->AddToViewport();
+		}
+	}
+	if (TutorialWidgetClass)
+	{
+		TutorialWidget = CreateWidget<UOCTutorialWidget>(
+			this,
+			TutorialWidgetClass
+		);
+
+		if (TutorialWidget)
+		{
+			TutorialWidget->AddToViewport(100);
 		}
 	}
 	if (AOCGameState* GameState = GetWorld()->GetGameState<AOCGameState>())
@@ -113,75 +127,131 @@ void AOCPlayerController::StartGame()
 	World->ServerTravel(TEXT("/Game/Maps/DevMap"));
 }
 
+void AOCPlayerController::ServerFinishTutorial_Implementation()
+{
+	AOCGameMode* GameMode = GetWorld()
+		? GetWorld()->GetAuthGameMode<AOCGameMode>()
+		: nullptr;
+
+	if (GameMode)
+	{
+		GameMode->StartRound();
+	}
+}
+
 void AOCPlayerController::HandleMatchResultReady(
-	const FOCMatchResult& MatchResult
+    const FOCMatchResult& MatchResult
 )
 {
-	if (!ResultWidgetClass)
-	{
-		return;
-	}
+    if (!ResultWidgetClass)
+    {
+        return;
+    }
 
-	if (!ResultWidget)
-	{
-		ResultWidget = CreateWidget<UOCResultWidget>(
-			this,
-			ResultWidgetClass
-		);
-	}
+    // =========================
+    // TIME OVER 팝업
+    // =========================
+    if (TimeOverWidgetClass)
+    {
+        if (!TimeOverWidget)
+        {
+            TimeOverWidget = CreateWidget<UUserWidget>(
+                this,
+                TimeOverWidgetClass
+            );
+        }
 
-	if (!ResultWidget)
-	{
-		return;
-	}
+        if (TimeOverWidget)
+        {
+            TimeOverWidget->AddToViewport(200);
+        }
+    }
 
-	ResultWidget->SetResultValues(
-		0,
-		0,
-		0,
-		MatchResult.FinalScore
-	);
+    // 결과창에 필요한 값은 복사해서 타이머에 넘김
+    const FOCMatchResult SavedResult = MatchResult;
 
-	ResultWidget->SetStarThresholds(
-	MatchResult.FinalScore,
-		300,
-		600,
-		900
-	);
-	
-	const AOCGameState* GameState =
-	GetWorld()->GetGameState<AOCGameState>();
+    FTimerHandle ResultDelayTimerHandle;
 
-	if (GameState)
-	{
-		ResultWidget->SetPlayerCount(
-			GameState->GetParticipatingPlayerCount()
-		);
-	}
-	ResultWidget->SetPlayer1Name(TEXT("Rabbit"));
+    GetWorldTimerManager().SetTimer(
+        ResultDelayTimerHandle,
+        [this, SavedResult]()
+        {
+            // TimeOver 제거
+            if (TimeOverWidget)
+            {
+                TimeOverWidget->RemoveFromParent();
+            }
 
-	if (GameState &&
-		GameState->GetParticipatingPlayerCount() >= 2)
-	{
-		ResultWidget->SetPlayer2Name(TEXT("Panda"));
-	}
-	ResultWidget->AddToViewport();
+            // =========================
+            // 기존 RESULT 처리
+            // =========================
+            if (!ResultWidget)
+            {
+                ResultWidget = CreateWidget<UOCResultWidget>(
+                    this,
+                    ResultWidgetClass
+                );
+            }
 
-	FInputModeUIOnly InputMode;
-	InputMode.SetWidgetToFocus(ResultWidget->TakeWidget());
+            if (!ResultWidget)
+            {
+                return;
+            }
 
-	SetInputMode(InputMode);
-	SetShowMouseCursor(true);
-	
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("Result Ready - Score: %d / Stars: %d"),
-		MatchResult.FinalScore,
-		MatchResult.EarnedStars
-	);
+            ResultWidget->SetResultValues(
+                0,
+                0,
+                0,
+                SavedResult.FinalScore
+            );
+
+            ResultWidget->SetStarThresholds(
+                SavedResult.FinalScore,
+                300,
+                600,
+                900
+            );
+
+            const AOCGameState* GameState =
+                GetWorld()->GetGameState<AOCGameState>();
+
+            if (GameState)
+            {
+                ResultWidget->SetPlayerCount(
+                    GameState->GetParticipatingPlayerCount()
+                );
+            }
+
+            ResultWidget->SetPlayer1Name(TEXT("Rabbit"));
+
+            if (GameState &&
+                GameState->GetParticipatingPlayerCount() >= 2)
+            {
+                ResultWidget->SetPlayer2Name(TEXT("Panda"));
+            }
+
+            ResultWidget->AddToViewport(100);
+
+            FInputModeUIOnly InputMode;
+            InputMode.SetWidgetToFocus(
+                ResultWidget->TakeWidget()
+            );
+
+            SetInputMode(InputMode);
+            SetShowMouseCursor(true);
+
+            UE_LOG(
+                LogTemp,
+                Warning,
+                TEXT("Result Ready - Score: %d / Stars: %d"),
+                SavedResult.FinalScore,
+                SavedResult.EarnedStars
+            );
+        },
+        2.0f, // TimeOver 표시 시간
+        false
+    );
 }
-	
 
 void AOCPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
@@ -410,6 +480,13 @@ void AOCPlayerController::HandleMatchPhaseChanged(
 	EOCMatchPhase PreviousPhase
 )
 {
+	if (NewPhase == EOCMatchPhase::Countdown)
+	{
+		if (TutorialWidget)
+		{
+			TutorialWidget->HideTutorial();
+		}
+	}
 	if (!HUDWidget)
 	{
 		return;

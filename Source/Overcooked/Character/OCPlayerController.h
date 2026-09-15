@@ -8,6 +8,8 @@
 class UTexture2D;
 class UOCHUDWidget;
 class UOCResultWidget;
+class UOCTutorialWidget;
+class UUserWidget;
 UCLASS(Blueprintable)
 class OVERCOOKED_API AOCPlayerController : public APlayerController
 {
@@ -22,6 +24,8 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Overcooked|Game")
 	void StartGame();
+		UFUNCTION(Server, Reliable)
+	void ServerFinishTutorial();
 
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
@@ -40,10 +44,22 @@ protected:
 	float GamepadDeadZone = 0.2f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|UI")
-TSubclassOf<UOCResultWidget> ResultWidgetClass;
+    TSubclassOf<UOCResultWidget> ResultWidgetClass;
 
-UPROPERTY()
-TObjectPtr<UOCResultWidget> ResultWidget;
+    UPROPERTY()
+    TObjectPtr<UOCResultWidget> ResultWidget;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|UI")
+	TSubclassOf<UOCTutorialWidget> TutorialWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UOCTutorialWidget> TutorialWidget;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|UI")
+	TSubclassOf<UUserWidget> TimeOverWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UUserWidget> TimeOverWidget;
 private:
 	UFUNCTION(Server, Reliable)
 	void ServerDebugCompleteOrder(int32 OrderIndex);
