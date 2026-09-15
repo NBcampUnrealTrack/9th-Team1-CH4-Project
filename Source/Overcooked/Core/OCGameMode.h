@@ -31,9 +31,6 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Overcooked|Recipe")
 	bool SubmitDish(const FOCDishContents& Dish, EOCRecipeType& MatchedRecipe); //레시피.제출
 
-	UFUNCTION(BlueprintPure, BlueprintAuthorityOnly, Category = "Overcooked|Recipe")
-	bool CanSubmitDish(const FOCDishContents& Dish, EOCRecipeType& MatchedRecipe) const; //레시피.제출
-
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Overcooked|Debug")
 	bool DebugCompleteOrderAtIndex(int32 OrderIndex); //주문.디버그
 
@@ -42,7 +39,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Overcooked|Match")
 	AOCGameState* GetOCGameState() const; //게임모드.상태
-
+	bool CanSubmitDish(const FOCDishContents& Dish, EOCRecipeType& MatchedRecipe) const;
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Match", meta = (ClampMin = "0.0"))
 	float CountdownDuration = 3.0f;
@@ -71,8 +68,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Order", meta = (ClampMin = "1"))
 	int32 MaximumActiveOrders = 6;
 
+	// 켜면 양상추 샐러드 주문 한 개만 생성하고 완료 즉시 라운드를 종료합니다.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Order")
-	bool bUseDebugOrderSequence = true;
+	bool bUseSingleLettuceTestOrder = true;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Recipe")
 	EOCRecipeStage RecipeStage = EOCRecipeStage::Tutorial;
@@ -111,7 +109,6 @@ private:
 	FName MakePlayerStartTag(int32 PlayerSlotIndex) const;
 	bool HasEnoughPlayersToStart();
 	void TryAutoStartRound();
-	void ConfigureRulesForCurrentMap();
 	void RefreshParticipatingPlayerCount();
 	void RefreshPlayerSlots();
 	void EnsureSharedCamera();

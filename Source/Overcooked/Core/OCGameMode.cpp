@@ -13,22 +13,9 @@
 #include "EngineUtils.h"
 #include "GameFramework/PlayerStart.h"
 #include "GameFramework/PlayerController.h"
-#include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogOCGameMode, Log, All);
-
-namespace
-{
-	constexpr EOCRecipeType DebugOrderSequence[] = {
-		EOCRecipeType::LettuceSalad,
-		EOCRecipeType::TomatoSalad,
-		EOCRecipeType::CucumberTomatoCabbageSalad,
-		EOCRecipeType::ShrimpSushi,
-		EOCRecipeType::OctopusSushi,
-		EOCRecipeType::SalmonSushi
-	};
-}
 
 AOCGameMode::AOCGameMode()
 {
@@ -43,7 +30,6 @@ void AOCGameMode::StartPlay()
 {
 	Super::StartPlay();
 
-	ConfigureRulesForCurrentMap();
 	EnsureSharedCamera();
 	ApplySharedCameraToAllPlayers();
 	RefreshParticipatingPlayerCount();
@@ -54,13 +40,12 @@ void AOCGameMode::StartPlay()
 void AOCGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
-
 	ApplySharedCamera(NewPlayer);
 	RefreshParticipatingPlayerCount();
 	RefreshPlayerSlots();
-
 	TryAutoStartRound();
 }
+
 void AOCGameMode::PreLogin(
 	const FString& Options,
 	const FString& Address,
@@ -160,12 +145,15 @@ void AOCGameMode::AddScore(const int32 ScoreDelta)
 
 bool AOCGameMode::SubmitDish(const FOCDishContents& Dish, EOCRecipeType& MatchedRecipe)
 {
+	MatchedRecipe = EOCRecipeType::None;
 	AOCGameState* State = GetOCGameState();
-	if (!CanSubmitDish(Dish, MatchedRecipe) || !IsValid(State))
+	if (!HasAuthority() || !IsValid(State) || State->GetMatchPhase() != EOCMatchPhase::Playing)
 	{
 		return false;
 	}
 
+	//레시피 판정
+	MatchedRecipe = UOCRecipeLibrary::FindMatchingRecipe(Dish);
 	int32 MatchingOrderId = INDEX_NONE;
 	int32 MatchingOrderIndex = INDEX_NONE;
 	const TArray<FOCActiveOrder>& Orders = State->GetActiveOrdersRef();
@@ -189,7 +177,7 @@ bool AOCGameMode::SubmitDish(const FOCDishContents& Dish, EOCRecipeType& Matched
 		AwardOrderScore(*State, CompletedOrder, MatchingOrderIndex == 0);
 		if (State->GetActiveOrdersRef().IsEmpty())
 		{
-			if (bUseDebugOrderSequence && NextOrderId >= UE_ARRAY_COUNT(DebugOrderSequence))
+			if (bUseSingleLettuceTestOrder)
 			{
 				FinishRound();
 			}
@@ -203,36 +191,27 @@ bool AOCGameMode::SubmitDish(const FOCDishContents& Dish, EOCRecipeType& Matched
 	BP_OnDishSubmitted(bAccepted, MatchedRecipe);
 	return bAccepted;
 }
-
-void AOCGameMode::ConfigureRulesForCurrentMap()
-{
-	const FString LevelName = UGameplayStatics::GetCurrentLevelName(this, true);
-	if (LevelName.Equals(TEXT("tutorial"), ESearchCase::IgnoreCase))
-	{
-		bUseDebugOrderSequence = false;
-		RecipeStage = EOCRecipeStage::Tutorial;
-		MinimumOrderInterval = 5.0f;
-		MaximumOrderInterval = 7.0f;
-	}
-}
-
-bool AOCGameMode::CanSubmitDish(const FOCDishContents& Dish, EOCRecipeType& MatchedRecipe) const
+bool AOCGameMode::CanSubmitDish(
+	const FOCDishContents& Dish,
+	EOCRecipeType& MatchedRecipe) const
 {
 	MatchedRecipe = EOCRecipeType::None;
+
 	const AOCGameState* State = GetOCGameState();
-	if (!HasAuthority() || !IsValid(State) || State->GetMatchPhase() != EOCMatchPhase::Playing)
+	if (!HasAuthority()
+		|| !IsValid(State)
+		|| State->GetMatchPhase() != EOCMatchPhase::Playing)
 	{
 		return false;
 	}
 
-	//레시피 판정
 	MatchedRecipe = UOCRecipeLibrary::FindMatchingRecipe(Dish);
+
 	if (MatchedRecipe == EOCRecipeType::None)
 	{
 		return false;
 	}
 
-	//주문 판정
 	for (const FOCActiveOrder& Order : State->GetActiveOrdersRef())
 	{
 		if (Order.Recipe == MatchedRecipe)
@@ -243,7 +222,6 @@ bool AOCGameMode::CanSubmitDish(const FOCDishContents& Dish, EOCRecipeType& Matc
 
 	return false;
 }
-
 bool AOCGameMode::DebugCompleteOrderAtIndex(const int32 OrderIndex)
 {
 	AOCGameState* State = GetOCGameState();
@@ -268,7 +246,7 @@ bool AOCGameMode::DebugCompleteOrderAtIndex(const int32 OrderIndex)
 	BP_OnDishSubmitted(true, SelectedOrder.Recipe);
 	if (State->GetActiveOrdersRef().IsEmpty())
 	{
-		if (bUseDebugOrderSequence && NextOrderId >= UE_ARRAY_COUNT(DebugOrderSequence))
+		if (bUseSingleLettuceTestOrder)
 		{
 			FinishRound();
 		}
@@ -374,6 +352,7 @@ void AOCGameMode::TryAutoStartRound()
 		StartRound();
 	}
 }
+
 void AOCGameMode::RefreshParticipatingPlayerCount()
 {
 	AOCGameState* State = GetOCGameState();
@@ -474,7 +453,7 @@ void AOCGameMode::ShowResults()
 	State->SetMatchResult(Result);
 	State->SetMatchPhase(EOCMatchPhase::Results);
 
-	UE_LOG(LogOCGameMode, Warning, TEXT("테스트 완료: 토마토 샐러드 주문 성공 / 최종 점수: %d / 별: %d"), Result.FinalScore,
+	UE_LOG(LogOCGameMode, Warning, TEXT("테스트 완료: 양상추 샐러드 주문 성공 / 최종 점수: %d / 별: %d"), Result.FinalScore,
 		Result.EarnedStars
 	);
 
@@ -539,14 +518,15 @@ void AOCGameMode::GenerateOrder()
 		return;
 	}
 
-	if (bUseDebugOrderSequence)
+	// 테스트 모드에서는 양상추 샐러드 주문을 처음 한 번만 생성합니다.
+	if (bUseSingleLettuceTestOrder)
 	{
-		if (NextOrderId < UE_ARRAY_COUNT(DebugOrderSequence)
-			&& State->GetActiveOrdersRef().Num() < MaximumActiveOrders)
+		if (NextOrderId == 0
+			&& State->GetActiveOrdersRef().IsEmpty())
 		{
 			FOCActiveOrder NewOrder;
-			NewOrder.OrderId = NextOrderId;
-			NewOrder.Recipe = DebugOrderSequence[NextOrderId++];
+			NewOrder.OrderId = NextOrderId++;
+			NewOrder.Recipe = EOCRecipeType::LettuceSalad;
 			NewOrder.CreatedAtServerTime =
 				State->GetServerWorldTimeSeconds();
 			NewOrder.TimeLimit = OrderTipDecayDuration;
@@ -554,10 +534,6 @@ void AOCGameMode::GenerateOrder()
 			State->AddOrder(NewOrder);
 		}
 
-		if (NextOrderId < UE_ARRAY_COUNT(DebugOrderSequence))
-		{
-			ScheduleNextOrder();
-		}
 		return;
 	}
 
