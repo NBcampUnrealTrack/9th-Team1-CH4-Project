@@ -6,6 +6,7 @@
 #include "../UI/OCHUDWidget.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/LocalPlayer.h"
+#include "Engine/Texture2D.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/Pawn.h"
@@ -33,6 +34,7 @@ void AOCPlayerController::BeginPlay()
 	FInputModeGameOnly InputMode;
 	SetInputMode(InputMode);
 	SetShowMouseCursor(false);
+	EnsureDefaultOrderCardTextures();
 	
 	if (HUDWidgetClass)
 	{
@@ -475,6 +477,40 @@ void AOCPlayerController::HandleOrdersChanged()
 		}
 	}
 }
+
+void AOCPlayerController::EnsureDefaultOrderCardTextures()
+{
+	const auto AddMissingTexture = [this](const EOCRecipeType Recipe, const TCHAR* AssetPath)
+	{
+		if (!OrderCardTextures.Contains(Recipe) || !OrderCardTextures[Recipe])
+		{
+			if (UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, AssetPath))
+			{
+				OrderCardTextures.Add(Recipe, Texture);
+			}
+		}
+	};
+
+	AddMissingTexture(
+		EOCRecipeType::LettuceSalad,
+		TEXT("/Game/Overcooked/UI/Images/UHD/Order/T_OC_Order_Lettuce.T_OC_Order_Lettuce"));
+	AddMissingTexture(
+		EOCRecipeType::TomatoSalad,
+		TEXT("/Game/Overcooked/UI/Images/UHD/Order/T_OC_Order_LettuceTomato.T_OC_Order_LettuceTomato"));
+	AddMissingTexture(
+		EOCRecipeType::CucumberTomatoCabbageSalad,
+		TEXT("/Game/Overcooked/UI/Images/UHD/Order/T_OC_Order_LettuceTomatoCucumber.T_OC_Order_LettuceTomatoCucumber"));
+	AddMissingTexture(
+		EOCRecipeType::ShrimpSushi,
+		TEXT("/Game/Overcooked/UI/Images/UHD/Order/T_OC_Order_ShrimpSushi.T_OC_Order_ShrimpSushi"));
+	AddMissingTexture(
+		EOCRecipeType::OctopusSushi,
+		TEXT("/Game/Overcooked/UI/Images/UHD/Order/T_OC_Order_OctopusSushi.T_OC_Order_OctopusSushi"));
+	AddMissingTexture(
+		EOCRecipeType::SalmonSushi,
+		TEXT("/Game/Overcooked/UI/Images/UHD/Order/T_OC_Order_SalmonSushi.T_OC_Order_SalmonSushi"));
+}
+
 void AOCPlayerController::HandleMatchPhaseChanged(
 	EOCMatchPhase NewPhase,
 	EOCMatchPhase PreviousPhase

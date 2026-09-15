@@ -48,10 +48,17 @@ void AOCGameMode::ConfigureRulesForCurrentMap()
 		bUseSingleLettuceTestOrder = false;
 		RecipeStage = EOCRecipeStage::Tutorial;
 	}
-	else if (LevelName.Equals(TEXT("DevMap"), ESearchCase::IgnoreCase))
+	else if (LevelName.Equals(TEXT("DevMap"), ESearchCase::IgnoreCase)
+		|| LevelName.Equals(TEXT("Leveone"), ESearchCase::IgnoreCase))
 	{
 		bUseSingleLettuceTestOrder = false;
 		RecipeStage = EOCRecipeStage::Stage1;
+	}
+	else if (LevelName.Equals(TEXT("Levetwo"), ESearchCase::IgnoreCase)
+		|| LevelName.Equals(TEXT("Levethree"), ESearchCase::IgnoreCase))
+	{
+		bUseSingleLettuceTestOrder = false;
+		RecipeStage = EOCRecipeStage::Stage2;
 	}
 }
 
