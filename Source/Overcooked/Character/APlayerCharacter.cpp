@@ -3,7 +3,9 @@
 
 #include "APlayerCharacter.h"
 #include "Camera/CameraComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Engine/StaticMesh.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "../Interaction/InteractionComponent.h"
@@ -13,6 +15,7 @@
 #include "Net/UnrealNetwork.h"
 
 #include "InputAction.h"
+#include "UObject/ConstructorHelpers.h"
 
 
 
@@ -62,6 +65,38 @@ AAPlayerCharacter::AAPlayerCharacter()
     CreateDefaultSubobject<UItemHolderComponent>(
         TEXT("ItemHolderComponent")
     );
+
+    ChoppingKnifeMesh =
+        CreateDefaultSubobject<UStaticMeshComponent>(
+            TEXT("ChoppingKnifeMesh")
+        );
+
+    // KnifeSocket은 Panda_Skeleton의 오른손에 별도로 생성합니다.
+    ChoppingKnifeMesh->SetupAttachment(
+        GetMesh(),
+        TEXT("KnifeSocket")
+    );
+
+    ChoppingKnifeMesh->SetCollisionEnabled(
+        ECollisionEnabled::NoCollision
+    );
+
+    ChoppingKnifeMesh->SetSimulatePhysics(false);
+    ChoppingKnifeMesh->SetVisibility(false, true);
+    ChoppingKnifeMesh->SetHiddenInGame(true, true);
+
+    static ConstructorHelpers::FObjectFinder<UStaticMesh>
+        ChoppingKnifeAsset(
+            TEXT("/Game/External/Kenney/FoodKit/Food/cooking-knife-chopping.cooking-knife-chopping")
+        );
+
+    if (ChoppingKnifeAsset.Succeeded())
+    {
+        ChoppingKnifeMesh->SetStaticMesh(
+            ChoppingKnifeAsset.Object
+        );
+    }
+
     InvalidOrderWidgetComponent =
     CreateDefaultSubobject<UWidgetComponent>(
         TEXT("InvalidOrderWidget")
@@ -128,6 +163,28 @@ void AAPlayerCharacter::SetIsChopping(bool bNewIsChopping)
 
     bIsChopping = bNewIsChopping;
     ForceNetUpdate();
+}
+
+void AAPlayerCharacter::ShowChoppingKnife()
+{
+    if (!ChoppingKnifeMesh)
+    {
+        return;
+    }
+
+    ChoppingKnifeMesh->SetHiddenInGame(false, true);
+    ChoppingKnifeMesh->SetVisibility(true, true);
+}
+
+void AAPlayerCharacter::HideChoppingKnife()
+{
+    if (!ChoppingKnifeMesh)
+    {
+        return;
+    }
+
+    ChoppingKnifeMesh->SetVisibility(false, true);
+    ChoppingKnifeMesh->SetHiddenInGame(true, true);
 }
 
 void AAPlayerCharacter::GetLifetimeReplicatedProps(

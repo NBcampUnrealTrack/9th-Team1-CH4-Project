@@ -14,6 +14,7 @@ class UInputAction;
 class UInteractionComponent;
 class UItemHolderComponent;
 class UWidgetComponent;
+class UStaticMeshComponent;
 
 UCLASS()
 class OVERCOOKED_API AAPlayerCharacter : public ACharacter
@@ -31,6 +32,14 @@ public:
 
     // 서버의 도마 상호작용만 썰기 상태를 변경합니다.
     void SetIsChopping(bool bNewIsChopping);
+
+    // AnimBP의 썰기 시작 Notify에서 호출해 칼을 표시합니다.
+    UFUNCTION(BlueprintCallable, Category = "Interaction|Chopping")
+    void ShowChoppingKnife();
+
+    // AnimBP의 썰기 종료 Notify에서 호출해 칼을 숨깁니다.
+    UFUNCTION(BlueprintCallable, Category = "Interaction|Chopping")
+    void HideChoppingKnife();
     
     UFUNCTION(BlueprintCallable, Category = "Overcooked|UI")
     void ShowInvalidOrderPopup();
@@ -113,6 +122,15 @@ private:
         meta = (AllowPrivateAccess = "true")
     )
     TObjectPtr<UItemHolderComponent> ItemHolderComponent;
+
+    // 썰기 중에만 KnifeSocket에 표시하는 장식용 칼 메시입니다.
+    UPROPERTY(
+        VisibleAnywhere,
+        BlueprintReadOnly,
+        Category = "Interaction|Chopping",
+        meta = (AllowPrivateAccess = "true")
+    )
+    TObjectPtr<UStaticMeshComponent> ChoppingKnifeMesh;
     
 
     UPROPERTY(EditDefaultsOnly, Category = "Input")
