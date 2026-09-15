@@ -121,6 +121,7 @@ private:
 	void ScheduleNextOrder();
 	void GenerateOrder();
 	void AwardOrderScore(AOCGameState& State, const FOCActiveOrder& Order, bool bCompletedInOrder);
+
 	int32 CalculateOrderTip(const AOCGameState& State, const FOCActiveOrder& Order) const;
 	int32 CalculateTipMultiplier(int32 ComboCount) const;
 	int32 CalculateEarnedStars(int32 FinalScore) const;

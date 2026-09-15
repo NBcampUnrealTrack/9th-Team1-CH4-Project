@@ -44,6 +44,7 @@ void AOCGameMode::PostLogin(APlayerController* NewPlayer)
 	RefreshParticipatingPlayerCount();
 	RefreshPlayerSlots();
 	TryAutoStartRound();
+
 }
 
 void AOCGameMode::PreLogin(
