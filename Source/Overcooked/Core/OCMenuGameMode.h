@@ -14,4 +14,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Overcooked|Menu")
 	void StartGame();
+	
+	protected:
+        virtual void PostLogin(APlayerController* NewPlayer) override;
+    
+    private:
+        void UpdatePlayerSlots();
 };
