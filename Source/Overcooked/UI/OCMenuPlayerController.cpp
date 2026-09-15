@@ -1,6 +1,8 @@
 #include "OCMenuPlayerController.h"
 #include "OCMenuWidget.h"
+#include "OCSessionManager.h"
 #include "../UI/OCMenuPlayerController.h"
+#include "../Core/OCMenuGameMode.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 
@@ -31,11 +33,47 @@ UOCMenuWidget* AOCMenuPlayerController::FindMenuWidget() const
 	return nullptr;
 }
 
+void AOCMenuPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (IsLocalController())
+	{
+		SessionManager = NewObject<UOCSessionManager>(this);
+
+		if (SessionManager)
+		{
+			SessionManager->Initialize();
+		}
+	}
+}
+void AOCMenuPlayerController::HostGame()
+{
+	if (SessionManager)
+	{
+		SessionManager->HostSession();
+	}
+}
+void AOCMenuPlayerController::JoinGame()
+{
+	if (SessionManager)
+	{
+		SessionManager->FindAndJoinSession();
+	}
+}
 void AOCMenuPlayerController::ClientUpdatePlayerSlots_Implementation(
 	int32 PlayerCount)
 {
 	if (UOCMenuWidget* MenuWidget = FindMenuWidget())
 	{
 		MenuWidget->SetPlayer2Connected(PlayerCount >= 2);
+	}
+}
+void AOCMenuPlayerController::ServerRequestPlayerSlots_Implementation()
+{
+	if (AOCMenuGameMode* MenuGameMode =
+		GetWorld()->GetAuthGameMode<AOCMenuGameMode>())
+	{
+		MenuGameMode->UpdatePlayerSlots();
 	}
 }

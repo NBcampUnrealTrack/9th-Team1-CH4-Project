@@ -15,7 +15,9 @@ public class Overcooked : ModuleRules
 				"InputCore",
 				"EnhancedInput",
 				"UMG",
-				"DeveloperSettings"
+				"DeveloperSettings",
+				"OnlineSubsystem",
+				"OnlineSubsystemUtils"
 			}
 		);
 
@@ -25,7 +27,7 @@ public class Overcooked : ModuleRules
 			{
 				"Slate",
 				"SlateCore"
-			}
+				}
 		);
 	}
 }
