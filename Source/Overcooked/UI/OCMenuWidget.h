@@ -29,6 +29,12 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> ExitButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> HostButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> JoinButton;
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Player2Image;
@@ -50,5 +56,8 @@ protected:
 
 	UFUNCTION()
 	void OnExitButtonClicked();
+
+	UFUNCTION()
+	void OnConnectionButtonClicked();
 		
 	};

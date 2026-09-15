@@ -19,9 +19,15 @@ void AOCMenuGameMode::PostLogin(APlayerController* NewPlayer)
 
 	UpdatePlayerSlots();
 }
-void AOCMenuGameMode::StartGame()
+void AOCMenuGameMode::Logout(AController* Exiting)
 {
-	if (!HasAuthority())
+	Super::Logout(Exiting);
+	UpdatePlayerSlots();
+}
+
+void AOCMenuGameMode::StartGame(APlayerController* RequestingPlayer)
+{
+	if (!HasAuthority() || !IsValid(RequestingPlayer) || !RequestingPlayer->IsLocalController())
 	{
 		return;
 	}

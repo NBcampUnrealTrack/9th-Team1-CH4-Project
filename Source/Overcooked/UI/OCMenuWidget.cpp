@@ -55,6 +55,7 @@ void UOCMenuWidget::NativeConstruct()
 	// 기존 버튼 바인딩 코드들은 그대로
 	if (StartButton)
 	{
+		StartButton->OnClicked.Clear();
 		StartButton->OnClicked.AddDynamic(
 			this,
 			&UOCMenuWidget::OnStartButtonClicked
@@ -63,6 +64,7 @@ void UOCMenuWidget::NativeConstruct()
 
 	if (SettingsButton)
 	{
+		SettingsButton->OnClicked.Clear();
 		SettingsButton->OnClicked.AddDynamic(
 			this,
 			&UOCMenuWidget::OnSettingsButtonClicked
@@ -71,17 +73,42 @@ void UOCMenuWidget::NativeConstruct()
 
 	if (ExitButton)
 	{
+		ExitButton->OnClicked.Clear();
 		ExitButton->OnClicked.AddDynamic(
 			this,
 			&UOCMenuWidget::OnExitButtonClicked
 		);
+	}
+
+	if (HostButton)
+	{
+		HostButton->OnClicked.Clear();
+		HostButton->OnClicked.AddDynamic(this, &UOCMenuWidget::OnConnectionButtonClicked);
+	}
+
+	if (JoinButton)
+	{
+		JoinButton->OnClicked.Clear();
+		JoinButton->OnClicked.AddDynamic(this, &UOCMenuWidget::OnConnectionButtonClicked);
 	}
 	
 }
 
 void UOCMenuWidget::OnStartButtonClicked()
 {
-	UE_LOG(LogTemp, Log, TEXT("Start Button Clicked"));
+	if (AOCMenuPlayerController* MenuPC = Cast<AOCMenuPlayerController>(GetOwningPlayer()))
+	{
+		MenuPC->RequestStartGame();
+	}
+}
+
+void UOCMenuWidget::OnConnectionButtonClicked()
+{
+	if (AOCMenuPlayerController* MenuPC = Cast<AOCMenuPlayerController>(GetOwningPlayer()))
+	{
+		SetVisibility(ESlateVisibility::Collapsed);
+		MenuPC->ShowConnectionChoice(this);
+	}
 }
 
 void UOCMenuWidget::OnSettingsButtonClicked()

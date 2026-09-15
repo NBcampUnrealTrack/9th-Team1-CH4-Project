@@ -15,6 +15,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
+#include "UObject/ConstructorHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogOCGameMode, Log, All);
 
@@ -25,6 +26,27 @@ AOCGameMode::AOCGameMode()
 	DefaultPawnClass = AOCCharacter::StaticClass();
 	PlayerControllerClass = AOCPlayerController::StaticClass();
 	HUDClass = AOCDebugHUD::StaticClass();
+
+	static ConstructorHelpers::FClassFinder<APawn> RabbitPawn(TEXT("/Game/Overcooked/Character/BP_Player_Rabbit"));
+	static ConstructorHelpers::FClassFinder<APawn> PandaPawn(TEXT("/Game/Overcooked/Character/BP_Player_Panda"));
+	RabbitPawnClass = RabbitPawn.Class;
+	PandaPawnClass = PandaPawn.Class;
+}
+
+UClass* AOCGameMode::GetDefaultPawnClassForController_Implementation(AController* InController)
+{
+	const int32 PlayerSlotIndex = ResolvePlayerSlotIndex(InController);
+	if (PlayerSlotIndex == 0 && RabbitPawnClass)
+	{
+		return RabbitPawnClass;
+	}
+
+	if (PlayerSlotIndex == 1 && PandaPawnClass)
+	{
+		return PandaPawnClass;
+	}
+
+	return Super::GetDefaultPawnClassForController_Implementation(InController);
 }
 
 void AOCGameMode::StartPlay()

@@ -25,8 +25,12 @@ private:
 	TSharedPtr<FOnlineSessionSearch> SessionSearch;
 
 	FDelegateHandle CreateSessionCompleteHandle;
+	FDelegateHandle DestroySessionCompleteHandle;
 	FDelegateHandle FindSessionsCompleteHandle;
 	FDelegateHandle JoinSessionCompleteHandle;
+
+	void CreateHostSession();
+	void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful);
 
 	void OnCreateSessionComplete(
 		FName SessionName,

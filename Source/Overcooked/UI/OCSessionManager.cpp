@@ -34,6 +34,40 @@ void UOCSessionManager::HostSession()
         return;
     }
 
+    if (SessionInterface->GetNamedSession(NAME_GameSession) != nullptr)
+    {
+        DestroySessionCompleteHandle =
+            SessionInterface->AddOnDestroySessionCompleteDelegate_Handle(
+                FOnDestroySessionCompleteDelegate::CreateUObject(
+                    this,
+                    &UOCSessionManager::OnDestroySessionComplete
+                )
+            );
+
+        if (!SessionInterface->DestroySession(NAME_GameSession))
+        {
+            SessionInterface->ClearOnDestroySessionCompleteDelegate_Handle(
+                DestroySessionCompleteHandle
+            );
+            UE_LOG(LogTemp, Error, TEXT("SESSION: Existing session could not be destroyed"));
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("SESSION: Removing existing session before hosting"));
+        }
+        return;
+    }
+
+    CreateHostSession();
+}
+
+void UOCSessionManager::CreateHostSession()
+{
+    if (!SessionInterface.IsValid())
+    {
+        return;
+    }
+
     FOnlineSessionSettings SessionSettings;
 
     SessionSettings.bIsLANMatch = true;
@@ -64,6 +98,30 @@ void UOCSessionManager::HostSession()
         );
 
         UE_LOG(LogTemp, Error, TEXT("SESSION: CreateSession failed to start"));
+    }
+}
+
+void UOCSessionManager::OnDestroySessionComplete(
+    FName SessionName,
+    bool bWasSuccessful)
+{
+    if (SessionInterface.IsValid())
+    {
+        SessionInterface->ClearOnDestroySessionCompleteDelegate_Handle(
+            DestroySessionCompleteHandle
+        );
+    }
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("SESSION: Destroy previous session %s"),
+        bWasSuccessful ? TEXT("SUCCESS") : TEXT("FAILED")
+    );
+
+    if (bWasSuccessful)
+    {
+        CreateHostSession();
     }
 }
 

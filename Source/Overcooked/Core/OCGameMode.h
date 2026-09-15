@@ -21,6 +21,7 @@ public:
 	virtual void Logout(AController* Exiting) override;
 	virtual void PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage) override;
 	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
+	virtual UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Overcooked|Match")
 	void StartRound(); //게임모드.라운드
@@ -55,6 +56,12 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Match")
 	bool bAutoStartRound = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Player")
+	TSubclassOf<APawn> RabbitPawnClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Player")
+	TSubclassOf<APawn> PandaPawnClass;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Network", meta = (ClampMin = "2", ClampMax = "4"))
 	int32 MinimumPlayersToStart = 2;

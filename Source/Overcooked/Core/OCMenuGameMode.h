@@ -13,10 +13,11 @@ public:
 	AOCMenuGameMode();
 
 	UFUNCTION(BlueprintCallable, Category = "Overcooked|Menu")
-	void StartGame();
+	void StartGame(APlayerController* RequestingPlayer);
 	void UpdatePlayerSlots();
 	protected:
         virtual void PostLogin(APlayerController* NewPlayer) override;
+		virtual void Logout(AController* Exiting) override;
     
     private:
        
