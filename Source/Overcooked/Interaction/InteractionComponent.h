@@ -23,7 +23,6 @@ public:
 	bool TryPlaceHeldItemOnTable();
 
 private:
-
 	// F키를 누르기 시작했을 때 상호작용한 대상을 기억합니다.
 	TWeakObjectPtr<AActor> ActiveInteractTarget;
 	

@@ -103,10 +103,9 @@ void UInteractionComponent::TryInteract()
             return;
         }
 
-        // 실제 상호작용 액터를 찾았다면 바로 실행합니다.
-        if (Target->GetClass()->ImplementsInterface(
-            UInteractableInterface::StaticClass()
-        ))
+		if (Target->GetClass()->ImplementsInterface(
+			UInteractableInterface::StaticClass()
+		))
         {
             ActiveInteractTarget = Target;
 
