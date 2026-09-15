@@ -54,12 +54,13 @@ void AOCGameMode::StartPlay()
 void AOCGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
+
 	ApplySharedCamera(NewPlayer);
 	RefreshParticipatingPlayerCount();
 	RefreshPlayerSlots();
+
 	TryAutoStartRound();
 }
-
 void AOCGameMode::PreLogin(
 	const FString& Options,
 	const FString& Address,
@@ -373,7 +374,6 @@ void AOCGameMode::TryAutoStartRound()
 		StartRound();
 	}
 }
-
 void AOCGameMode::RefreshParticipatingPlayerCount()
 {
 	AOCGameState* State = GetOCGameState();

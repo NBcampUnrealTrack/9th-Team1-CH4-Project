@@ -19,6 +19,9 @@ public:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void PlayerTick(float DeltaTime) override;
+	
+	UFUNCTION(BlueprintCallable, Category = "Overcooked|Game")
+	void StartGame();
 
 protected:
 	virtual void OnPossess(APawn* InPawn) override;

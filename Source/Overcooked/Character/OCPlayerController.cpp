@@ -27,6 +27,11 @@ void AOCPlayerController::BeginPlay()
 	{
 		return;
 	}
+	
+	FInputModeGameOnly InputMode;
+	SetInputMode(InputMode);
+	SetShowMouseCursor(false);
+	
 	if (HUDWidgetClass)
 	{
 		HUDWidget = CreateWidget<UOCHUDWidget>(this, HUDWidgetClass);
@@ -50,6 +55,8 @@ void AOCPlayerController::BeginPlay()
 	&AOCPlayerController::HandleRemainingTimeChanged
 );
 
+		
+		
 		HandleRemainingTimeChanged(GameState->GetRemainingTime());
 		
 		GameState->OnComboChanged.AddDynamic(
@@ -90,6 +97,22 @@ void AOCPlayerController::BeginPlay()
 	
 	
 }
+void AOCPlayerController::StartGame()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	World->ServerTravel(TEXT("/Game/Maps/DevMap"));
+}
+
 void AOCPlayerController::HandleMatchResultReady(
 	const FOCMatchResult& MatchResult
 )
