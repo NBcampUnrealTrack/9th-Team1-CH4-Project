@@ -10,6 +10,7 @@
 #include "../Item/ItemHolderComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Net/UnrealNetwork.h"
 
 #include "InputAction.h"
 
@@ -111,6 +112,31 @@ void AAPlayerCharacter::BeginPlay()
             );
         }
     }
+}
+
+bool AAPlayerCharacter::IsChopping() const
+{
+    return bIsChopping;
+}
+
+void AAPlayerCharacter::SetIsChopping(bool bNewIsChopping)
+{
+    if (!HasAuthority() || bIsChopping == bNewIsChopping)
+    {
+        return;
+    }
+
+    bIsChopping = bNewIsChopping;
+    ForceNetUpdate();
+}
+
+void AAPlayerCharacter::GetLifetimeReplicatedProps(
+    TArray<FLifetimeProperty>& OutLifetimeProps
+) const
+{
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+    DOREPLIFETIME(AAPlayerCharacter, bIsChopping);
 }
 
 

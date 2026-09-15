@@ -24,6 +24,13 @@ public:
     AAPlayerCharacter();
 
     virtual void BeginPlay() override;
+
+    // 애니메이션 블루프린트가 현재 썰기 상태를 조회합니다.
+    UFUNCTION(BlueprintPure, Category = "Interaction|Chopping")
+    bool IsChopping() const;
+
+    // 서버의 도마 상호작용만 썰기 상태를 변경합니다.
+    void SetIsChopping(bool bNewIsChopping);
     
     UFUNCTION(BlueprintCallable, Category = "Overcooked|UI")
     void ShowInvalidOrderPopup();
@@ -32,6 +39,10 @@ protected:
     virtual void SetupPlayerInputComponent(
         class UInputComponent* PlayerInputComponent
     ) override;
+
+    virtual void GetLifetimeReplicatedProps(
+        TArray<FLifetimeProperty>& OutLifetimeProps
+    ) const override;
 
 private:
 
@@ -106,4 +117,14 @@ private:
 
     UPROPERTY(EditDefaultsOnly, Category = "Input")
     TObjectPtr<UInputAction> PickupDropAction;
+
+    // 서버가 결정한 썰기 상태를 모든 클라이언트의 AnimBP에 전달합니다.
+    UPROPERTY(
+        Replicated,
+        VisibleInstanceOnly,
+        BlueprintReadOnly,
+        Category = "Interaction|Chopping",
+        meta = (AllowPrivateAccess = "true")
+    )
+    bool bIsChopping = false;
 };

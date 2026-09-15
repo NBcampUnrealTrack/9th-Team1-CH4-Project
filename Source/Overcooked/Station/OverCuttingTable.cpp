@@ -116,6 +116,8 @@ void AOverCuttingTable::Interact_Implementation(AAPlayerCharacter* Player)
 		SafeTickInterval,
 		true
 	);
+
+	Player->SetIsChopping(true);
 }
 
 void AOverCuttingTable::StopInteract_Implementation(
@@ -128,16 +130,23 @@ void AOverCuttingTable::StopInteract_Implementation(
 	}
 
 	GetWorldTimerManager().ClearTimer(ChoppingTimerHandle);
+	Player->SetIsChopping(false);
 	ChoppingPlayer.Reset();
 }
 
 void AOverCuttingTable::AdvanceChoppingTick()
 {
+	AAPlayerCharacter* Player = ChoppingPlayer.Get();
+
 	if (!HasAuthority()
-		|| !ChoppingPlayer.IsValid()
+		|| !Player
 		|| !CanChopIngredient())
 	{
 		GetWorldTimerManager().ClearTimer(ChoppingTimerHandle);
+		if (Player)
+		{
+			Player->SetIsChopping(false);
+		}
 		ChoppingPlayer.Reset();
 		return;
 	}
@@ -148,6 +157,7 @@ void AOverCuttingTable::AdvanceChoppingTick()
 	if (AdvanceChopping(SafeTickInterval))
 	{
 		GetWorldTimerManager().ClearTimer(ChoppingTimerHandle);
+		Player->SetIsChopping(false);
 		ChoppingPlayer.Reset();
 	}
 }
