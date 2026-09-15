@@ -99,6 +99,7 @@ void UItemHolderComponent::Hold(AKitchenObject* Object)
 
 	// 실제 부착이 성공한 뒤에 보관합니다.
 	HeldObject = Object;
+	Player->SetIsCarryingItem(true);
 
 	UE_LOG(
 		LogTemp,
@@ -194,6 +195,7 @@ void UItemHolderComponent::Release()
 	);
 
 	HeldObject = nullptr;
+	Player->SetIsCarryingItem(false);
 }
 
 
@@ -205,6 +207,11 @@ bool UItemHolderComponent::CompleteTransfer(AKitchenObject* Object)
 	}
 
 	HeldObject = nullptr;
+
+	if (AAPlayerCharacter* Player = Cast<AAPlayerCharacter>(GetOwner()))
+	{
+		Player->SetIsCarryingItem(false);
+	}
 
 	UE_LOG(LogTemp, Log, TEXT("ItemHolderComponent: %s 배치 지점으로 전달"), *Object->GetName());
 

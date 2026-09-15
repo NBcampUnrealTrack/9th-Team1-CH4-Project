@@ -56,6 +56,7 @@ public:
 	bool AdvanceChopping(float DeltaSeconds);
 	// 재료가 썰기 완료 상태인지 반환합니다.
 	bool IsChopped() const;
+	float GetRemainingChopSeconds() const; //도마.썰기
 
 	// 현재 아이템을 주문 판정용 재료 정보로 변환합니다.
 	virtual bool BuildPreparedIngredient(FOCPreparedIngredient& OutIngredient) const;

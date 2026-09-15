@@ -10,6 +10,7 @@
 class AOverPickupItem;
 class USceneComponent;
 class UStaticMeshComponent;
+class UTextRenderComponent;
 class AAPlayerCharacter;
 
 /** 재료 한 개를 올려놓고 썰 수 있는 작업대입니다. */
@@ -24,6 +25,7 @@ public:
 
 	// 에디터에서 배치하거나 속성을 변경할 때 배치 설정을 갱신합니다.
 	virtual void OnConstruction(const FTransform& Transform) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void Interact_Implementation(AAPlayerCharacter* Player) override;
 
@@ -47,8 +49,13 @@ protected:
 
 private:
 
-	// F키를 누르고 있는 동안 서버에서 썰기 시간을 누적합니다.
+	// F키를 한 번 누르면 서버에서 썰기 시간을 자동 누적합니다.
 	void AdvanceChoppingTick();
+	void PauseChopping(bool bHideDebugTime = false); //도마.썰기
+	void UpdateChopDebugTime(); //도마.디버그
+
+	UFUNCTION()
+	void OnRep_ChopDebugTime(); //도마.디버그
 
 	// 썰기 시간을 누적할 주기입니다.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Cutting Table",
@@ -67,6 +74,15 @@ private:
 	// 작업대 윗면에서 재료를 부착할 기준점입니다.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cutting Table", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USceneComponent> IngredientPoint;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cutting Table|Debug", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UTextRenderComponent> ChopTimeText;
+
+	UPROPERTY(ReplicatedUsing = OnRep_ChopDebugTime)
+	float ReplicatedRemainingChopSeconds = 0.0f;
+
+	UPROPERTY(ReplicatedUsing = OnRep_ChopDebugTime)
+	bool bShowChopDebugTime = false;
 
 	// 메시 윗면 중앙을 기준으로 재료 배치 위치를 미세 조정합니다.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Cutting Table", meta = (AllowPrivateAccess = "true"))
