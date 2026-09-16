@@ -6,6 +6,7 @@
 #include "Engine/OverlapResult.h"
 #include "GameFramework/Actor.h"
 #include "../Station/OverServingTableComponent.h"
+#include "../Station/OverCuttingTable.h"
 #include "Components/StaticMeshComponent.h"
 #include "../Item/OverKitchenSettings.h"
 #include "../Item/ItemHolderComponent.h"
@@ -18,12 +19,6 @@ UInteractionComponent::UInteractionComponent()
 
 void UInteractionComponent::TryInteract()
 {
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("InteractionComponent::TryInteract 호출")
-    );
-
     ActiveInteractTarget.Reset();
 
     AActor* Owner = GetOwner();
@@ -31,12 +26,6 @@ void UInteractionComponent::TryInteract()
 
     if (!Owner || !World)
     {
-        UE_LOG(
-            LogTemp,
-            Error,
-            TEXT("InteractionComponent Owner 또는 World가 없음")
-        );
-
         return;
     }
 
@@ -55,10 +44,72 @@ void UInteractionComponent::TryInteract()
     FCollisionQueryParams QueryParams;
     QueryParams.AddIgnoredActor(Owner);
 
+    constexpr int32 MaxTableSkipCount = 8;
+
+    for (int32 Attempt = 0; Attempt < MaxTableSkipCount; ++Attempt)
+    {
+        FHitResult Hit;
+
+        const bool bHit = World->SweepSingleByChannel(
+            Hit,
+            Start,
+            End,
+            FQuat::Identity,
+            ECC_Visibility,
+            FCollisionShape::MakeSphere(50.0f),
+            QueryParams
+        );
+
+        if (!bHit || !Hit.GetActor())
+        {
+            return;
+        }
+
+        AActor* Target = Hit.GetActor();
+
+        // F키는 도마만 허용
+        if (AOverCuttingTable* CuttingTable =
+            Cast<AOverCuttingTable>(Target))
+        {
+            if (CuttingTable->TryStartChopping(Player))
+            {
+                ActiveInteractTarget = Target;
+            }
+
+            return;
+        }
+
+        // 다른 오브젝트는 F키로 상호작용하지 않음
+        QueryParams.AddIgnoredActor(Target);
+    }
+}
+bool UInteractionComponent::TryGeneralInteract()
+{
+    AActor* Owner = GetOwner();
+    UWorld* World = GetWorld();
+
+    if (!Owner || !World)
+    {
+        return false;
+    }
+
+    AAPlayerCharacter* Player = Cast<AAPlayerCharacter>(Owner);
+
+    if (!Player)
+    {
+        return false;
+    }
+
+    const FVector Start = Owner->GetActorLocation();
+    const FVector End =
+        Start + Owner->GetActorForwardVector() * InteractionDistance;
+
+    FCollisionQueryParams QueryParams;
+    QueryParams.AddIgnoredActor(Owner);
+
     const UOverKitchenSettings* KitchenSettings =
         GetDefault<UOverKitchenSettings>();
 
-    // 여러 개의 일반 테이블이 겹쳐 있어도 무한 반복하지 않도록 제한합니다.
     constexpr int32 MaxTableSkipCount = 8;
 
     for (int32 Attempt = 0; Attempt < MaxTableSkipCount; ++Attempt)
@@ -80,41 +131,45 @@ void UInteractionComponent::TryInteract()
             UE_LOG(
                 LogTemp,
                 Warning,
-                TEXT("상호작용 대상 없음")
+                TEXT("E TryGeneralInteract: Sweep 대상 없음")
             );
 
-            return;
+            return false;
         }
 
         AActor* Target = Hit.GetActor();
-
+        
         UE_LOG(
             LogTemp,
             Warning,
-            TEXT("상호작용 대상 발견: %s"),
+            TEXT("E 일반 상호작용 대상: %s"),
             *Target->GetName()
         );
+        
+        // E키: 도마에 재료 올리기 / 완성된 재료 가져오기
+        if (AOverCuttingTable* CuttingTable =
+            Cast<AOverCuttingTable>(Target))
+        {
+            return CuttingTable->TryHandleIngredient(Player);
+        }
 
-        // 서빙대는 일반 테이블 메시를 사용하더라도 먼저 처리합니다.
+        // E키: 완성 음식 제출
         if (UOverServingTableComponent* ServingComponent =
             Target->FindComponentByClass<UOverServingTableComponent>())
         {
-            ServingComponent->TryServeHeldPlate(Player);
-            return;
+            return ServingComponent->TryServeHeldPlate(Player);
         }
 
-		if (Target->GetClass()->ImplementsInterface(
-			UInteractableInterface::StaticClass()
-		))
+        // E키: 상자 등 일반 Interactable
+        if (Target->GetClass()->ImplementsInterface(
+            UInteractableInterface::StaticClass()))
         {
-            ActiveInteractTarget = Target;
-
             IInteractableInterface::Execute_Interact(
                 Target,
                 Player
             );
 
-            return;
+            return true;
         }
 
         UStaticMeshComponent* TargetMesh =
@@ -133,36 +188,17 @@ void UInteractionComponent::TryInteract()
                 TargetMesh->GetStaticMesh()
             );
 
-        // 일반 테이블이 아니라면 벽처럼 정상적인 차단물로 취급합니다.
         if (!bIsRegisteredTable)
         {
-            UE_LOG(
-                LogTemp,
-                Warning,
-                TEXT("상호작용을 막은 객체: %s"),
-                *Target->GetName()
-            );
-
-            return;
+            return false;
         }
 
-        UE_LOG(
-            LogTemp,
-            Warning,
-            TEXT("일반 테이블을 건너뛰고 다시 검사: %s"),
-            *Target->GetName()
-        );
-
+        // 일반 테이블이면 뒤쪽의 실제 상호작용 대상을 계속 검사
         QueryParams.AddIgnoredActor(Target);
     }
 
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("상호작용 테이블 검사 횟수 초과")
-    );
+    return false;
 }
-
 void UInteractionComponent::StopInteract()
 {
     AActor* Target = ActiveInteractTarget.Get();

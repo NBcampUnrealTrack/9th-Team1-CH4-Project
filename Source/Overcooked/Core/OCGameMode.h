@@ -53,7 +53,7 @@ protected:
 	float EndingDuration = 1.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Score", meta = (ClampMin = "0"))
-	TArray<int32> StarScoreThresholds = { 300, 600, 900 };
+	TArray<int32> StarScoreThresholds = { 120, 230, 330 };
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Match")
 	bool bAutoStartRound = true;

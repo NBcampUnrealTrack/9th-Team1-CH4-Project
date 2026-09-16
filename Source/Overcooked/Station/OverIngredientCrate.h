@@ -15,11 +15,12 @@ class OVERCOOKED_API AOverIngredientCrate : public AKitchenObject
 public:
 	AOverIngredientCrate();
 	virtual void Interact_Implementation(AAPlayerCharacter* Player) override;
-
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Crate")
+	TSubclassOf<AOverPickupItem> IngredientClass;
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Crate")
 	TObjectPtr<UStaticMeshComponent> CrateMesh;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Crate")
-	TSubclassOf<AOverPickupItem> IngredientClass;
+
 };

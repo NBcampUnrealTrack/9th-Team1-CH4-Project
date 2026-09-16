@@ -30,7 +30,10 @@ public:
 	virtual void Interact_Implementation(AAPlayerCharacter* Player) override;
 
 	virtual void StopInteract_Implementation(AAPlayerCharacter* Player) override;
-
+	// E키: 도마에 재료를 올리거나 완성된 재료를 가져옵니다.
+	bool TryHandleIngredient(AAPlayerCharacter* Player);
+	// F키: 도마 위의 생재료를 썰기 시작합니다.
+	bool TryStartChopping(AAPlayerCharacter* Player);
 	// 작업대가 비어 있고 재료를 배치할 수 있을 때 부착 후 보관합니다.
 	bool PlaceIngredient(AOverPickupItem* Ingredient);
 	// 작업대의 재료를 손으로 옮기며, 실패하거나 재료가 없으면 nullptr를 반환합니다.
@@ -43,7 +46,7 @@ public:
 	bool AdvanceChopping(float DeltaSeconds);
 	// 상호작용 거리 판정에 사용할 배치 지점의 월드 위치를 반환합니다.
 	FVector GetInteractionLocation() const;
-
+	
 protected:
 	virtual void BeginPlay() override;
 

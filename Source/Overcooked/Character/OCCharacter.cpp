@@ -10,10 +10,12 @@
 #include "GameFramework/PlayerController.h"
 #include "../interaction/InteractionComponent.h"
 #include "../item/ItemHolderComponent.h"
-
+#include "../Station/OverIngredientCrate.h"
+#include "../Item/OverPickupItem.h"
 
 AOCCharacter::AOCCharacter()
 {
+    
     bReplicates = true;
     SetReplicateMovement(true);
 
@@ -256,22 +258,17 @@ void AOCCharacter::PickupOrDrop()
         return;
     }
 
-    // 현재 아이템을 들고 있는 경우
     if (ItemHolderComponent->GetHeldObject())
     {
-        // 먼저 테이블 배치를 시도한다.
         if (InteractionComponent->TryPlaceHeldItemOnTable())
         {
             return;
         }
 
-        // 테이블 배치가 아니면 일반 Drop
         ItemHolderComponent->Release();
-
         return;
     }
 
-    // 아무것도 들고 있지 않으면 Pickup
     InteractionComponent->TryPickup();
 }
 

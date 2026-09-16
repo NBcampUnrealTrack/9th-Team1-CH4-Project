@@ -521,38 +521,46 @@ void AAPlayerCharacter::PickupOrDrop()
         return;
     }
 
-    if (!ItemHolderComponent
-        || !InteractionComponent)
+    if (!ItemHolderComponent || !InteractionComponent)
     {
-        UE_LOG(
-            LogTemp,
-            Warning,
-            TEXT("PickupOrDrop: 필요한 컴포넌트가 없음")
-        );
-
         return;
     }
 
+    // ============================
+    // 손에 무언가 들고 있을 때
+    // ============================
     if (ItemHolderComponent->GetHeldObject())
     {
-        // 일반 탁자를 바라보고 있다면 탁자 배치로 E키 입력을 처리합니다.
-        if (InteractionComponent->
-            TryPlaceHeldItemOnTable())
+        // E 일반 상호작용
+        // 도마 올리기 / 제출 등
+        if (InteractionComponent->TryGeneralInteract())
         {
             return;
         }
 
-        // 일반 탁자가 없다면 기존처럼 캐릭터 앞 바닥에 내려놓습니다.
+        // 일반 테이블에 놓기
+        if (InteractionComponent->TryPlaceHeldItemOnTable())
+        {
+            return;
+        }
+
+        // 아무것도 없으면 바닥에 내려놓기
         ItemHolderComponent->Release();
         return;
     }
 
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("PickupOrDrop: 현재 들고 있는 객체가 없음")
-    );
+    // ============================
+    // 손이 비어 있을 때
+    // ============================
 
+    // ★ 핵심
+    // 재료상자 / 도마 / 기타 E 상호작용
+    if (InteractionComponent->TryGeneralInteract())
+    {
+        return;
+    }
+
+    // 바닥에 있는 재료 줍기
     InteractionComponent->TryPickup();
 }
 

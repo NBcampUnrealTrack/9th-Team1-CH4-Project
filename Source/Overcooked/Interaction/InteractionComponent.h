@@ -21,6 +21,8 @@ public:
 	void TryPickup();
 	// E키로 일반 탁자 배치를 처리하며, 탁자를 찾았거나 자리가 차 있으면 true를 반환합니다.
 	bool TryPlaceHeldItemOnTable();
+	// E키: 썰기를 제외한 일반 상호작용을 처리합니다.
+	bool TryGeneralInteract();
 
 private:
 	// F키를 누르기 시작했을 때 상호작용한 대상을 기억합니다.

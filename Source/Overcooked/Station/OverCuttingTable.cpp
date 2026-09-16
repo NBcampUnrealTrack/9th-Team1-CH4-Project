@@ -66,9 +66,15 @@ void AOverCuttingTable::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 
 void AOverCuttingTable::Interact_Implementation(AAPlayerCharacter* Player)
 {
+	// 기존 호출과의 호환성을 위해 F 동작(썰기)으로 연결
+	TryStartChopping(Player);
+}
+
+bool AOverCuttingTable::TryHandleIngredient(AAPlayerCharacter* Player)
+{
 	if (!HasAuthority() || !Player)
 	{
-		return;
+		return false;
 	}
 
 	UItemHolderComponent* Holder =
@@ -76,12 +82,12 @@ void AOverCuttingTable::Interact_Implementation(AAPlayerCharacter* Player)
 
 	if (!Holder)
 	{
-		return;
+		return false;
 	}
 
 	AKitchenObject* HeldObject = Holder->GetHeldObject();
 
-	// 손에 재료가 있으면 즉시 도마 위에 배치합니다.
+	// E키: 들고 있는 재료를 도마에 올림
 	if (HeldObject)
 	{
 		AOverPickupItem* HeldItem =
@@ -89,39 +95,48 @@ void AOverCuttingTable::Interact_Implementation(AAPlayerCharacter* Player)
 
 		if (!HeldItem)
 		{
-			return;
+			return false;
 		}
 
 		if (PlaceIngredient(HeldItem))
 		{
 			Holder->CompleteTransfer(HeldItem);
+			return true;
 		}
 
-		return;
+		return false;
 	}
 
-	// 손이 비었고 썰린 재료가 있으면 다시 손으로 가져옵니다.
-	if (IsValid(PlacedIngredient)
-		&& PlacedIngredient->IsChopped())
+	// E키: 다 썬 재료를 다시 손으로 가져옴
+	if (IsValid(PlacedIngredient) &&
+		PlacedIngredient->IsChopped())
 	{
-		AOverPickupItem* ChoppedIngredient =
-			PlacedIngredient;
+		AOverPickupItem* ChoppedIngredient = PlacedIngredient;
 
 		Holder->Hold(ChoppedIngredient);
 
 		if (Holder->GetHeldObject() == ChoppedIngredient)
 		{
 			PlacedIngredient = nullptr;
+			return true;
 		}
-
-		return;
 	}
 
-	// 손이 비었고 생재료가 있으면 썰기 타이머를 시작합니다.
-	if (!CanChopIngredient()
-		|| GetWorldTimerManager().IsTimerActive(ChoppingTimerHandle))
+	return false;
+}
+
+bool AOverCuttingTable::TryStartChopping(AAPlayerCharacter* Player)
+{
+	if (!HasAuthority() || !Player)
 	{
-		return;
+		return false;
+	}
+
+	// F키는 오직 썰기만 담당
+	if (!CanChopIngredient() ||
+		GetWorldTimerManager().IsTimerActive(ChoppingTimerHandle))
+	{
+		return false;
 	}
 
 	ChoppingPlayer = Player;
@@ -140,6 +155,8 @@ void AOverCuttingTable::Interact_Implementation(AAPlayerCharacter* Player)
 	);
 
 	Player->SetIsChopping(true);
+
+	return true;
 }
 
 void AOverCuttingTable::StopInteract_Implementation(
