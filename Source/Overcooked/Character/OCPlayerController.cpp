@@ -55,6 +55,7 @@ void AOCPlayerController::BeginPlay()
 		if (HUDWidget)
 		{
 			HUDWidget->AddToViewport();
+			  HUDWidget->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 	if (TutorialWidgetClass)
@@ -613,6 +614,10 @@ void AOCPlayerController::HandleMatchPhaseChanged(
 		if (TutorialWidget)
 		{
 			TutorialWidget->HideTutorial();
+		}
+		if (HUDWidget)
+		{
+			HUDWidget->SetVisibility(ESlateVisibility::Visible);
 		}
 	}
 	if (!HUDWidget)
