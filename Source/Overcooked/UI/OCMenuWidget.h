@@ -8,6 +8,7 @@ class UButton;
 class UImage;
 class UTextBlock;
 class UTexture2D;
+class UOCSettingsWidget;
 
 UCLASS()
 class OVERCOOKED_API UOCMenuWidget : public UOCBaseWidget
@@ -47,6 +48,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|Menu")
 	TObjectPtr<UTexture2D> Player2PandaTexture;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UOCSettingsWidget> SettingsWidgetClass;
 
 	UFUNCTION()
 	void OnStartButtonClicked();
