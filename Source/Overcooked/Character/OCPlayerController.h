@@ -86,12 +86,16 @@ private:
 	);
 	
 	bool TryUseSharedCamera();
+	void BindGameState();
 	void RefreshSharedCamera();
 	void EnsureDefaultOrderCardTextures(); //UI.주문
 	FVector2D ReadMovementInput() const;
 	void ApplyMovementInput(const FVector2D& MovementInput);
 
 	FTimerHandle SharedCameraRetryTimerHandle;
+	FTimerHandle GameStateRetryTimerHandle;
+	FTimerHandle ResultDelayTimerHandle;
+	bool bResultPresentationStarted = false;
 
 	UPROPERTY()
 	TObjectPtr<APawn> SinglePlayerPrimaryCharacter;

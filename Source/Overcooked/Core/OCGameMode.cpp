@@ -27,8 +27,8 @@ AOCGameMode::AOCGameMode()
 	PlayerControllerClass = AOCPlayerController::StaticClass();
 	HUDClass = AOCDebugHUD::StaticClass();
 
-	static ConstructorHelpers::FClassFinder<APawn> RabbitPawn(TEXT("/Game/Overcooked/Character/BP_Player_Rabbit"));
-	static ConstructorHelpers::FClassFinder<APawn> PandaPawn(TEXT("/Game/Overcooked/Character/BP_Player_Panda"));
+	static ConstructorHelpers::FClassFinder<APawn> RabbitPawn(TEXT("/Game/Overcooked/Blueprints/Player/BP_Player_Rabbit"));
+	static ConstructorHelpers::FClassFinder<APawn> PandaPawn(TEXT("/Game/Overcooked/Blueprints/Player/BP_Player_Panda"));
 	RabbitPawnClass = RabbitPawn.Class;
 	PandaPawnClass = PandaPawn.Class;
 }
@@ -45,14 +45,30 @@ void AOCGameMode::InitGame(
 UClass* AOCGameMode::GetDefaultPawnClassForController_Implementation(AController* InController)
 {
 	const int32 PlayerSlotIndex = ResolvePlayerSlotIndex(InController);
-	if (PlayerSlotIndex == 0 && RabbitPawnClass)
+	UClass* ResolvedRabbitClass = RabbitPawnClass.Get();
+	if (!ResolvedRabbitClass)
 	{
-		return RabbitPawnClass;
+		ResolvedRabbitClass = LoadClass<APawn>(
+			nullptr,
+			TEXT("/Game/Overcooked/Blueprints/Player/BP_Player_Rabbit.BP_Player_Rabbit_C"));
 	}
 
-	if (PlayerSlotIndex == 1 && PandaPawnClass)
+	UClass* ResolvedPandaClass = PandaPawnClass.Get();
+	if (!ResolvedPandaClass)
 	{
-		return PandaPawnClass;
+		ResolvedPandaClass = LoadClass<APawn>(
+			nullptr,
+			TEXT("/Game/Overcooked/Blueprints/Player/BP_Player_Panda.BP_Player_Panda_C"));
+	}
+
+	if ((PlayerSlotIndex == 0 || PlayerSlotIndex == INDEX_NONE) && ResolvedRabbitClass)
+	{
+		return ResolvedRabbitClass;
+	}
+
+	if (PlayerSlotIndex == 1 && ResolvedPandaClass)
+	{
+		return ResolvedPandaClass;
 	}
 
 	return Super::GetDefaultPawnClassForController_Implementation(InController);
@@ -438,9 +454,20 @@ void AOCGameMode::SetupSinglePlayerCharacters(APlayerController* PlayerControlle
 {
 	if (!HasAuthority()
 		|| ExpectedPlayerCount != 1
-		|| !IsValid(PlayerController)
-		|| !IsValid(PlayerController->GetPawn()))
+		|| !IsValid(PlayerController))
 	{
+		return;
+	}
+
+	if (!IsValid(PlayerController->GetPawn()))
+	{
+		TWeakObjectPtr<APlayerController> WeakPlayer = PlayerController;
+		GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(
+			this,
+			[this, WeakPlayer]()
+			{
+				SetupSinglePlayerCharacters(WeakPlayer.Get());
+			}));
 		return;
 	}
 
@@ -462,10 +489,31 @@ void AOCGameMode::SetupSinglePlayerCharacters(APlayerController* PlayerControlle
 			}
 		}
 
+		UClass* CompanionClass = PandaPawnClass.Get();
+		if (!CompanionClass)
+		{
+			CompanionClass = LoadClass<APawn>(
+				nullptr,
+				TEXT("/Game/Overcooked/Blueprints/Player/BP_Player_Panda.BP_Player_Panda_C"));
+		}
+
+		if (!CompanionClass)
+		{
+			UE_LOG(LogOCGameMode, Error, TEXT("Single-player Panda class could not be loaded."));
+			return;
+		}
+
 		FActorSpawnParameters SpawnParameters;
 		SpawnParameters.Owner = PlayerController;
 		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-		SinglePlayerCompanion = GetWorld()->SpawnActor<APawn>(PandaPawnClass, SpawnTransform, SpawnParameters);
+		SinglePlayerCompanion = GetWorld()->SpawnActor<APawn>(CompanionClass, SpawnTransform, SpawnParameters);
+		if (!IsValid(SinglePlayerCompanion))
+		{
+			UE_LOG(LogOCGameMode, Error, TEXT("Single-player Panda spawn failed. Class=%s"), *GetNameSafe(CompanionClass));
+			return;
+		}
+
+		UE_LOG(LogOCGameMode, Log, TEXT("Single-player Panda spawned. Class=%s"), *GetNameSafe(CompanionClass));
 	}
 
 	if (IsValid(SinglePlayerCompanion))
