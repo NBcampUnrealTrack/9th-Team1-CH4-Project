@@ -135,20 +135,6 @@ void AOCCharacter::SetupPlayerInputComponent(
     }
 
     // --------------------------------------------------
-    // Move
-    // --------------------------------------------------
-
-    if (MoveAction)
-    {
-        EnhancedInputComponent->BindAction(
-            MoveAction,
-            ETriggerEvent::Triggered,
-            this,
-            &AOCCharacter::Move
-        );
-    }
-
-    // --------------------------------------------------
     // Interact
     // --------------------------------------------------
 

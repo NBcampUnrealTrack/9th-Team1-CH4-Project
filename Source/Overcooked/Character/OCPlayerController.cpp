@@ -57,8 +57,24 @@ void AOCPlayerController::BeginPlay()
 			TutorialWidget->AddToViewport(100);
 		}
 	}
+	BindGameState();
+
+	if (!TryUseSharedCamera())
+	{
+		GetWorldTimerManager().SetTimer(
+			SharedCameraRetryTimerHandle,
+			this,
+			&AOCPlayerController::RefreshSharedCamera,
+			0.1f,
+			true);
+	}
+}
+
+void AOCPlayerController::BindGameState()
+{
 	if (AOCGameState* GameState = GetWorld()->GetGameState<AOCGameState>())
 	{
+		GetWorldTimerManager().ClearTimer(GameStateRetryTimerHandle);
 		GameState->OnScoreChanged.AddDynamic(
 			this,
 			&AOCPlayerController::HandleScoreChanged
@@ -99,20 +115,16 @@ void AOCPlayerController::BeginPlay()
 	this,
 	&AOCPlayerController::HandleMatchPhaseChanged
 );
+		// Replication may have arrived before the local controller subscribed.
+		HandleMatchPhaseChanged(GameState->GetMatchPhase(), GameState->GetMatchPhase());
 	}
-	
-	if (!TryUseSharedCamera())
+	else
 	{
-		GetWorldTimerManager().SetTimer(
-			SharedCameraRetryTimerHandle,
-			this,
-			&AOCPlayerController::RefreshSharedCamera,
-			0.1f,
-			true);
+		GetWorldTimerManager().SetTimer(GameStateRetryTimerHandle, this,
+			&AOCPlayerController::BindGameState, 0.1f, false);
 	}
-	
-	
 }
+
 void AOCPlayerController::StartGame()
 {
 	if (!HasAuthority())
@@ -145,10 +157,11 @@ void AOCPlayerController::HandleMatchResultReady(
     const FOCMatchResult& MatchResult
 )
 {
-    if (!ResultWidgetClass)
+    if (!IsLocalPlayerController() || !ResultWidgetClass || bResultPresentationStarted)
     {
         return;
     }
+    bResultPresentationStarted = true;
 
     // =========================
     // TIME OVER 팝업
@@ -172,11 +185,9 @@ void AOCPlayerController::HandleMatchResultReady(
     // 결과창에 필요한 값은 복사해서 타이머에 넘김
     const FOCMatchResult SavedResult = MatchResult;
 
-    FTimerHandle ResultDelayTimerHandle;
-
     GetWorldTimerManager().SetTimer(
         ResultDelayTimerHandle,
-        [this, SavedResult]()
+        FTimerDelegate::CreateWeakLambda(this, [this, SavedResult]()
         {
             // TimeOver 제거
             if (TimeOverWidget)
@@ -200,22 +211,25 @@ void AOCPlayerController::HandleMatchResultReady(
                 return;
             }
 
+            // Phase and result notifications can arrive in either order.
+            const AOCGameState* GameState =
+                GetWorld()->GetGameState<AOCGameState>();
+            const FOCMatchResult LatestResult = GameState
+                ? GameState->GetMatchResult() : SavedResult;
+
             ResultWidget->SetResultValues(
                 0,
                 0,
                 0,
-                SavedResult.FinalScore
+                LatestResult.FinalScore
             );
 
             ResultWidget->SetStarThresholds(
-                SavedResult.FinalScore,
+                LatestResult.FinalScore,
                 300,
                 600,
                 900
             );
-
-            const AOCGameState* GameState =
-                GetWorld()->GetGameState<AOCGameState>();
 
             if (GameState)
             {
@@ -246,10 +260,10 @@ void AOCPlayerController::HandleMatchResultReady(
                 LogTemp,
                 Warning,
                 TEXT("Result Ready - Score: %d / Stars: %d"),
-                SavedResult.FinalScore,
-                SavedResult.EarnedStars
+                LatestResult.FinalScore,
+                LatestResult.EarnedStars
             );
-        },
+        }),
         2.0f, // TimeOver 표시 시간
         false
     );
@@ -258,6 +272,8 @@ void AOCPlayerController::HandleMatchResultReady(
 void AOCPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(SharedCameraRetryTimerHandle);
+	GetWorldTimerManager().ClearTimer(GameStateRetryTimerHandle);
+	GetWorldTimerManager().ClearTimer(ResultDelayTimerHandle);
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -547,6 +563,14 @@ void AOCPlayerController::HandleMatchPhaseChanged(
 	EOCMatchPhase PreviousPhase
 )
 {
+	// A zero-score result equals its default value and need not trigger OnRep_MatchResult.
+	if (NewPhase == EOCMatchPhase::Results)
+	{
+		if (const AOCGameState* GameState = GetWorld()->GetGameState<AOCGameState>())
+		{
+			HandleMatchResultReady(GameState->GetMatchResult());
+		}
+	}
 	if (NewPhase == EOCMatchPhase::Countdown)
 	{
 		if (TutorialWidget)
