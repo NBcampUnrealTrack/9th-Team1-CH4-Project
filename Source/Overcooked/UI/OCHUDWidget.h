@@ -41,8 +41,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HUD")
 	void SetTipMultiplier(float Multiplier);
 	
+	UFUNCTION(BlueprintCallable, Category = "HUD")
+	void SetGameplayHUDVisible(bool bVisible);
+	
 	UFUNCTION(BlueprintCallable, Category = "Countdown")
 	void SetCountdown(int32 Count);
+
 protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> ScoreText;

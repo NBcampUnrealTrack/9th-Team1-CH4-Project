@@ -640,25 +640,35 @@ void AOCPlayerController::HandleMatchPhaseChanged(
 			HandleMatchResultReady(GameState->GetMatchResult());
 		}
 	}
+
+	// 튜토리얼 종료 → 카운트다운
 	if (NewPhase == EOCMatchPhase::Countdown)
 	{
 		if (TutorialWidget)
 		{
 			TutorialWidget->HideTutorial();
 		}
+
 		if (HUDWidget)
 		{
+			// HUD 자체는 보여야 3, 2, 1이 보임
 			HUDWidget->SetVisibility(ESlateVisibility::Visible);
+
+			// 점수 / 주문 / 타이머 등 실제 플레이 HUD만 숨김
+			HUDWidget->SetGameplayHUDVisible(false);
 		}
 	}
+
 	if (!HUDWidget)
 	{
 		return;
 	}
 
+	// 카운트다운 종료 → 실제 HUD 등장
 	if (NewPhase == EOCMatchPhase::Playing)
 	{
 		HUDWidget->SetCountdown(0);
+		HUDWidget->SetGameplayHUDVisible(true);
 	}
 }
 void AOCPlayerController::RequestMainMenu()

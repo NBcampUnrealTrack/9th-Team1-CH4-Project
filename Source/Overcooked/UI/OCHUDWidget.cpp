@@ -241,3 +241,33 @@ void UOCHUDWidget::SetCountdown(int32 Count)
 		}
 	}
 }
+void UOCHUDWidget::SetGameplayHUDVisible(bool bVisible)
+{
+	const ESlateVisibility NewVisibility =
+		bVisible ? ESlateVisibility::Visible : ESlateVisibility::Hidden;
+
+	if (ScoreText)
+	{
+		ScoreText->SetVisibility(NewVisibility);
+	}
+
+	if (TimerText)
+	{
+		TimerText->SetVisibility(NewVisibility);
+	}
+
+	if (OrderBox)
+	{
+		OrderBox->SetVisibility(NewVisibility);
+	}
+
+	if (TimeProgressBar)
+	{
+		TimeProgressBar->SetVisibility(NewVisibility);
+	}
+
+	if (TipMultiplierText)
+	{
+		TipMultiplierText->SetVisibility(NewVisibility);
+	}
+}
