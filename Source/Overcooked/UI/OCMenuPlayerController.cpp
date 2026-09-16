@@ -94,6 +94,7 @@ void AOCMenuPlayerController::ShowConnectionChoice(UOCMenuWidget* SourceMenu)
 		ConnectionWidget->InitializeConnectionScreen(SourceMenu);
 		ConnectionWidget->AddToViewport(100);
 	}
+	
 }
 
 void AOCMenuPlayerController::RequestStartGame()

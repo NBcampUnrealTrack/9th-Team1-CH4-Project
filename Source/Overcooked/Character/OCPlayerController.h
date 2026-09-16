@@ -84,6 +84,17 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UOCTutorialWidget> TutorialWidget;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|UI|Tutorial")
+	TObjectPtr<UTexture2D> TutorialBasicTexture;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|UI|Tutorial")
+	TObjectPtr<UTexture2D> TutorialStage1Texture;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|UI|Tutorial")
+	TObjectPtr<UTexture2D> TutorialStage2Texture;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|UI|Tutorial")
+	TObjectPtr<UTexture2D> TutorialStage3Texture;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Overcooked|UI")
 	TSubclassOf<UUserWidget> TimeOverWidgetClass;

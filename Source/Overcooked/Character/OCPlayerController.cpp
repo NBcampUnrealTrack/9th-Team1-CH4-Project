@@ -69,6 +69,37 @@ void AOCPlayerController::BeginPlay()
 		{
 			TutorialWidget->AddToViewport(100);
 		}
+		if (TutorialWidget)
+		{
+			const FString CurrentLevel =
+				UGameplayStatics::GetCurrentLevelName(this, true);
+
+			UTexture2D* TutorialTexture = nullptr;
+
+			if (CurrentLevel.Equals(TEXT("tutorial"), ESearchCase::IgnoreCase))
+			{
+				TutorialTexture = TutorialBasicTexture;
+			}
+			else if (CurrentLevel.Equals(TEXT("Leveone"), ESearchCase::IgnoreCase))
+			{
+				TutorialTexture = TutorialStage1Texture;
+			}
+			else if (CurrentLevel.Equals(TEXT("Levetwo"), ESearchCase::IgnoreCase))
+			{
+				TutorialTexture = TutorialStage2Texture;
+			}
+			else if (CurrentLevel.Equals(TEXT("Levethree"), ESearchCase::IgnoreCase))
+			{
+				TutorialTexture = TutorialStage3Texture;
+			}
+
+			if (TutorialTexture)
+			{
+				TutorialWidget->SetTutorialImage(TutorialTexture);
+			}
+
+			TutorialWidget->AddToViewport(100);
+		}
 	}
 	BindGameState();
 
