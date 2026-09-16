@@ -61,7 +61,7 @@ void UOCHUDWidget::SetTimer(float RemainingTime, float TotalTime)
 		if (RemainingTime <= 30.0f && RemainingTime > 0.0f)
 		{
 			TimeProgressBar->SetFillColorAndOpacity(
-				FLinearColor(0.95f, 0.08f, 0.05f, 1.0f)
+				FLinearColor(0.95f, 0.00f, 0.00f, 1.0f)
 			);
 
 			if (!bIsTimerWarning)
@@ -81,7 +81,7 @@ void UOCHUDWidget::SetTimer(float RemainingTime, float TotalTime)
 		else
 		{
 			TimeProgressBar->SetFillColorAndOpacity(
-				FLinearColor(0.25f, 0.95f, 0.18f, 1.0f)
+				FLinearColor(0.00f, 0.95f, 0.00f, 1.0f)
 			);
 
 			if (bIsTimerWarning)
