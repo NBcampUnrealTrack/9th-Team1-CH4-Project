@@ -10,6 +10,8 @@ class UOCHUDWidget;
 class UOCResultWidget;
 class UOCTutorialWidget;
 class UUserWidget;
+class USoundBase;
+class UAudioComponent;
 UCLASS(Blueprintable)
 class OVERCOOKED_API AOCPlayerController : public APlayerController
 {
@@ -28,7 +30,33 @@ public:
 	void StartGame();
 		UFUNCTION(Server, Reliable)
 	void ServerFinishTutorial();
+	
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void RequestMainMenu();
 
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void RequestNextStage();
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void RequestRetryStage();
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestRetryStage();
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRequestMainMenu();
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestNextStage();
+	
+	UFUNCTION(BlueprintCallable, Category = "Audio")
+	void UpdateBGMSpeed(float RemainingTime);
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> GameBGM;
+	UPROPERTY()
+	TObjectPtr<UAudioComponent> GameBGMComponent;
+
+	bool bBGMSpedUp = false;
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnRep_Pawn() override;

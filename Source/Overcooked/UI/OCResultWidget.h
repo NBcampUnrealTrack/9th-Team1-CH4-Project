@@ -56,18 +56,15 @@ protected:
 	) override;
 
 	UFUNCTION()
-	void OnRetryClicked();
+	void OnRetryButtonClicked();
 
 	UFUNCTION()
-	void OnNextClicked();
+	void OnMainButtonClicked();
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Result")
-	void BP_OnRetryClicked();
+	UFUNCTION()
+	void OnNextButtonClicked();
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Result")
-	void BP_OnNextClicked();
-
-private:
+	private:
 	void StartScoreCountUp();
 	void UpdateScoreCount();
 	void CheckStarUnlocks();
@@ -141,6 +138,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> RetryButton;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> MainButton;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> NextButton;

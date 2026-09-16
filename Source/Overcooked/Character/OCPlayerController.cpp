@@ -14,7 +14,9 @@
 #include "TimerManager.h"
 #include "../UI/OCResultWidget.h"
 #include "../UI/OCTutorialWidget.h"
+#include "Components/AudioComponent.h"
 #include "TimerManager.h"
+#include "Kismet/GameplayStatics.h"
 
 AOCPlayerController::AOCPlayerController()
 {
@@ -26,6 +28,16 @@ void AOCPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (IsLocalController() && GameBGM)
+	{
+		GameBGMComponent = UGameplayStatics::SpawnSound2D(this, GameBGM);
+
+		if (GameBGMComponent)
+		{
+			GameBGMComponent->SetPitchMultiplier(1.0f);
+		}
+	}
+	
 	if (!IsLocalPlayerController())
 	{
 		return;
@@ -67,6 +79,31 @@ void AOCPlayerController::BeginPlay()
 			&AOCPlayerController::RefreshSharedCamera,
 			0.1f,
 			true);
+	}
+}
+
+void AOCPlayerController::UpdateBGMSpeed(float RemainingTime)
+{
+	if (!IsLocalController() || !GameBGMComponent)
+	{
+		return;
+	}
+
+	if (RemainingTime <= 30.0f && RemainingTime > 0.0f)
+	{
+		if (!bBGMSpedUp)
+		{
+			GameBGMComponent->SetPitchMultiplier(1.3f);
+			bBGMSpedUp = true;
+		}
+	}
+	else if (RemainingTime > 30.0f)
+	{
+		if (bBGMSpedUp)
+		{
+			GameBGMComponent->SetPitchMultiplier(1.0f);
+			bBGMSpedUp = false;
+		}
 	}
 }
 
@@ -586,5 +623,95 @@ void AOCPlayerController::HandleMatchPhaseChanged(
 	if (NewPhase == EOCMatchPhase::Playing)
 	{
 		HUDWidget->SetCountdown(0);
+	}
+}
+void AOCPlayerController::RequestMainMenu()
+{
+	ServerRequestMainMenu();
+}
+
+void AOCPlayerController::RequestNextStage()
+{
+	ServerRequestNextStage();
+}
+
+void AOCPlayerController::RequestRetryStage()
+{
+	ServerRequestRetryStage();
+}
+
+void AOCPlayerController::ServerRequestRetryStage_Implementation()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+
+	if (!World)
+	{
+		return;
+	}
+
+	const FString CurrentLevel =
+		UGameplayStatics::GetCurrentLevelName(this, true);
+
+	const FString TravelURL = FString::Printf(
+		TEXT("/Game/Overcooked/Maps/%s?ExpectedPlayers=%d"),
+		*CurrentLevel,
+		FMath::Max(World->GetNumPlayerControllers(), 1)
+	);
+
+	World->ServerTravel(TravelURL);
+}
+void AOCPlayerController::ServerRequestMainMenu_Implementation()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->ServerTravel(TEXT("/Game/Overcooked/Maps/MenuMap"));
+	}
+}
+
+void AOCPlayerController::ServerRequestNextStage_Implementation()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+
+	if (!World)
+	{
+		return;
+	}
+
+	const FString CurrentLevel =
+		UGameplayStatics::GetCurrentLevelName(this, true);
+
+	FString NextLevel;
+
+	if (CurrentLevel.Equals(TEXT("tutorial"), ESearchCase::IgnoreCase))
+	{
+		NextLevel = TEXT("/Game/Overcooked/Maps/Leveone");
+	}
+	else if (CurrentLevel.Equals(TEXT("Leveone"), ESearchCase::IgnoreCase))
+	{
+		NextLevel = TEXT("/Game/Overcooked/Maps/Levetwo");
+	}
+	else if (CurrentLevel.Equals(TEXT("Levetwo"), ESearchCase::IgnoreCase))
+	{
+		NextLevel = TEXT("/Game/Overcooked/Maps/Levethree");
+	}
+
+	if (!NextLevel.IsEmpty())
+	{
+		World->ServerTravel(NextLevel);
 	}
 }

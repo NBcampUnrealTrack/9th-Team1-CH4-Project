@@ -5,6 +5,7 @@
 #include "Components/Image.h"
 #include "Components/Overlay.h"
 #include "Components/TextBlock.h"
+#include "../Character/OCPlayerController.h"
 #include "TimerManager.h"
 
 UOCResultWidget::UOCResultWidget(
@@ -20,18 +21,18 @@ void UOCResultWidget::NativeConstruct()
 
 	if (RetryButton)
 	{
-		RetryButton->OnClicked.AddUniqueDynamic(
-			this,
-			&UOCResultWidget::OnRetryClicked
-		);
+		RetryButton->OnClicked.AddUniqueDynamic(this,&UOCResultWidget::OnRetryButtonClicked);
+	}
+	if (MainButton)
+	{
+		MainButton->OnClicked.RemoveDynamic(this, &ThisClass::OnMainButtonClicked);
+		MainButton->OnClicked.AddDynamic(this, &ThisClass::OnMainButtonClicked);
 	}
 
 	if (NextButton)
 	{
-		NextButton->OnClicked.AddUniqueDynamic(
-			this,
-			&UOCResultWidget::OnNextClicked
-		);
+		NextButton->OnClicked.RemoveDynamic(this, &ThisClass::OnNextButtonClicked);
+		NextButton->OnClicked.AddDynamic(this, &ThisClass::OnNextButtonClicked);
 	}
 
 	SetKeyboardFocus();
@@ -572,24 +573,27 @@ void UOCResultWidget::SetPlayer2Name(
 	}
 }
 
-void UOCResultWidget::OnRetryClicked()
+void UOCResultWidget::OnRetryButtonClicked()
 {
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("Retry Button Clicked")
-	);
-
-	BP_OnRetryClicked();
+	if (AOCPlayerController* PC =
+		Cast<AOCPlayerController>(GetOwningPlayer()))
+	{
+		PC->RequestRetryStage();
+	}
 }
 
-void UOCResultWidget::OnNextClicked()
+void UOCResultWidget::OnMainButtonClicked()
 {
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("Next Button Clicked")
-	);
+	if (AOCPlayerController* PC = Cast<AOCPlayerController>(GetOwningPlayer()))
+	{
+		PC->RequestMainMenu();
+	}
+}
 
-	BP_OnNextClicked();
+void UOCResultWidget::OnNextButtonClicked()
+{
+	if (AOCPlayerController* PC = Cast<AOCPlayerController>(GetOwningPlayer()))
+	{
+		PC->RequestNextStage();
+	}
 }
