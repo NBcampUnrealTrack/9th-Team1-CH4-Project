@@ -393,13 +393,6 @@ void AAPlayerCharacter::SetupPlayerInputComponent(
         Cast<UEnhancedInputComponent>(PlayerInputComponent))
     {
         EnhancedInputComponent->BindAction(
-            MoveAction,
-            ETriggerEvent::Triggered,
-            this,
-            &AAPlayerCharacter::Move
-        );
-
-        EnhancedInputComponent->BindAction(
             InteractAction,
             ETriggerEvent::Started,
             this,
