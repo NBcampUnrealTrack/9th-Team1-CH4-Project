@@ -3,6 +3,8 @@
 #include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "OCSettingsWidget.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 void UOCMenuWidget::SetPlayer2Connected(bool bConnected)
 {
@@ -113,10 +115,39 @@ void UOCMenuWidget::OnConnectionButtonClicked()
 
 void UOCMenuWidget::OnSettingsButtonClicked()
 {
-	UE_LOG(LogTemp, Log, TEXT("Settings Button Clicked"));
+	APlayerController* OwningPlayer = GetOwningPlayer();
+
+	if (!OwningPlayer || !SettingsWidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SettingsWidgetClass is not assigned."));
+		return;
+	}
+
+	UOCSettingsWidget* SettingsWidget =
+		CreateWidget<UOCSettingsWidget>(
+			OwningPlayer,
+			SettingsWidgetClass
+		);
+
+	if (SettingsWidget)
+	{
+		SettingsWidget->AddToViewport();
+	}
 }
 
 void UOCMenuWidget::OnExitButtonClicked()
 {
-	UE_LOG(LogTemp, Log, TEXT("Exit Button Clicked"));
+	APlayerController* OwningPlayer = GetOwningPlayer();
+
+	if (!OwningPlayer)
+	{
+		return;
+	}
+
+	UKismetSystemLibrary::QuitGame(
+		this,
+		OwningPlayer,
+		EQuitPreference::Quit,
+		false
+	);
 }

@@ -6,6 +6,9 @@
 
 class USlider;
 class UButton;
+class USoundMix;
+class USoundClass;
+class UProgressBar;
 
 UCLASS()
 class OVERCOOKED_API UOCSettingsWidget : public UOCBaseWidget
@@ -17,12 +20,16 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<USlider> MasterVolumeSlider;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UProgressBar> MasterVolumeProgressBar;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<USlider> BGMVolumeSlider;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<USlider> SFXVolumeSlider;
+	
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> BackButton;
@@ -38,4 +45,16 @@ protected:
 
 	UFUNCTION()
 	void OnBackButtonClicked();
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoundMix> SettingsSoundMix;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoundClass> MasterSoundClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoundClass> BGMSoundClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoundClass> SFXSoundClass;
 };

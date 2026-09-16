@@ -45,7 +45,7 @@ void AOCMenuGameMode::StartGame(APlayerController* RequestingPlayer)
 		*World->GetMapName());
 
 	const FString TravelURL = FString::Printf(
-		TEXT("/Game/Overcooked/Maps/DevMap?ExpectedPlayers=%d"),
+		TEXT("/Game/Overcooked/Maps/tutorial?ExpectedPlayers=%d"),
 		FMath::Max(GetNumPlayers(), 1));
 	World->ServerTravel(TravelURL);
 }
